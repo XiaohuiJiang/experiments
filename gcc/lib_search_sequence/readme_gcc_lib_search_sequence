@@ -1,0 +1,16 @@
+baohua@baohua-VirtualBox:~/develop/training/misc$ gcc main.c
+/tmp/ccuak5uz.o: In function `main':
+main.c:(.text+0x1a): undefined reference to `sin'
+collect2: error: ld returned 1 exit status
+baohua@baohua-VirtualBox:~/develop/training/misc$ gcc -lm main.c
+/tmp/ccI4vcvI.o: In function `main':
+main.c:(.text+0x1a): undefined reference to `sin'
+collect2: error: ld returned 1 exit status
+baohua@baohua-VirtualBox:~/develop/training/misc$ gcc main.c -lm
+
+
+the lib search sequence is from left to right.
+if functions in main.c depends on other lib, main.c should be at left.
+the most low level lib should be at the most right.
+for details, search "gcc lib sequence" from internet.
+
