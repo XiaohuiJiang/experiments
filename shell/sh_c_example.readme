@@ -1,0 +1,5 @@
+XIAOHUJI-M-L0GK:experiments xiaohuji$ sh -c 'echo "hhAH" > aa.txt'
+sh -c 'echo "hhAH" > aa.txt'
+XIAOHUJI-M-L0GK:experiments xiaohuji$ cat aa.txt
+cat aa.txt
+hhAH
