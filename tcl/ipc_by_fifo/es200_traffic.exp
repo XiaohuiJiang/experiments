@@ -1,0 +1,7 @@
+#!/usr/bin/expect -f
+
+set fifo  [lindex $argv 0]
+set rd [open $fifo r]
+puts "read from fifo: [gets $rd]"
+flush stdout
+
