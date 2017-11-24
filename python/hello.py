@@ -6,12 +6,12 @@ import sys
 
 
 def usage():
-    print '''
+    print ('''
 NAME
     description
 Usage
     python program.py [options]
-'''
+''')
 
 
 if __name__ == '__main__':
@@ -19,7 +19,7 @@ if __name__ == '__main__':
         opts, args = getopt.getopt(sys.argv[1:], "hf:", ["help", "file="])
     except getopt.GetoptError as err:
         # print help information and exit:
-        print str(err) # will print something like "option -a not recognized"
+        print( str(err)) # will print something like "option -a not recognized"
         usage()
         sys.exit(2)
 
@@ -34,29 +34,29 @@ if __name__ == '__main__':
         else:
             assert False, "unhandled option"
 
-    print "hello world"
+    print ("hello world")
 
     sys.stdout.write("Haha by stdout\n")
 
-    print 1 + 2 * 4
+    print (1 + 2 * 4)
 
     import os
 
-    print os.getcwd()
+    print (os.getcwd())
 
     for root,dirs,files in os.walk('./'):
-        print 'root: ', root, 'dirs: ', dirs, 'files: ', files
+        print ('root: ', root, 'dirs: ', dirs, 'files: ', files)
 
     #os.system('./hello.py')
     os.system('ls -l')
     #example to read stdout from another process
     ppp = os.popen('ls -l')
-    print ppp.read()
+    print (ppp.read())
     help('file.read')
     help('ppp.read')
-    print dir(ppp)
+    print (dir(ppp))
     ppp.close()
 
-    print 'try -Qnew div method at cmdline:'
-    print "3/2=", 3/2, "3//2=", 3//2
-    print "3.0/2=", 3.0/2, "3.0//2=", 3.0//2
+    print ('try -Qnew div method at cmdline:')
+    print ("3/2=", 3/2, "3//2=", 3//2)
+    print ("3.0/2=", 3.0/2, "3.0//2=", 3.0//2)
