@@ -11,7 +11,7 @@ NAME
     description
 Usage
     python program.py [options]
-'''[1:-1]
+'''
 
 
 if __name__ == '__main__':
