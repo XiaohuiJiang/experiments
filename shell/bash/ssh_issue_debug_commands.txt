@@ -20,6 +20,9 @@ linux-8lq6:~/sshd.strace # strace -ff -o strace.log -tt -T -p 21672
 ## strace 同时输出到终端和文件
 strace -tt -T ssh 192.168.255.128 id 2>&1 | tee strace.log.`date +%s`
 
+## REF
+https://www.depesz.com/2010/12/13/a-tale-of-slow-ssh-connections/
+
 jiang@linux-d4xo:~> time ssh -v 192.168.255.128 id 2>&1  | perl -pe 'use Time::HiRes qw( time ); $_ = sprintf("%.6f %s", time(), $_)'
 1574495972.063255 OpenSSH_7.2p2, OpenSSL 1.0.2j-fips  26 Sep 2016
 1574495972.063550 debug1: Reading configuration data /etc/ssh/ssh_config
