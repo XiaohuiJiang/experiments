@@ -1,0 +1,123 @@
+## 统计系统页表占用的内存大小
+
+cat /proc/meminfo | grep PageTables
+
+## 每个进程的页表占用的内存累计
+pids=$(ls /proc | grep -E [0-9])
+PTEs=$(for pid in $pids; do cat /proc/$pid/status | grep VmPTE | awk '{print $2}'; done 2>/dev/null)
+total_PTEs=0
+for i in $PTEs; do total_PTEs=$(( $total_PTEs + $i)); done
+echo $total_PTEs
+
+
+jiang@linux-d4xo:~> pids=$(ls /proc | grep -E [0-9])
+jiang@linux-d4xo:~> PTEs=$(for pid in $pids; do cat /proc/$pid/status | grep VmPTE | awk '{print $2}'; done 2>/dev/null)
+jiang@linux-d4xo:~> total_PTEs=0
+jiang@linux-d4xo:~> for i in $PTEs; do total_PTEs=$(( $total_PTEs + $i)); done
+jiang@linux-d4xo:~> echo $total_PTEs
+9504
+jiang@linux-d4xo:~> cat /proc/meminfo | grep PageTables
+PageTables:         9556 kB
+jiang@linux-d4xo:~> cat /proc/meminfo | grep PageTables
+PageTables:         9552 kB
+jiang@linux-d4xo:~> cat /proc/meminfo
+MemTotal:         740360 kB
+MemFree:           64088 kB
+MemAvailable:     335848 kB
+Buffers:               8 kB
+Cached:           361180 kB
+SwapCached:          260 kB
+Active:           249084 kB
+Inactive:         253544 kB
+Active(anon):      68308 kB
+Inactive(anon):    76368 kB
+Active(file):     180776 kB
+Inactive(file):   177176 kB
+Unevictable:          80 kB
+Mlocked:              80 kB
+SwapTotal:       1115132 kB
+SwapFree:        1109216 kB
+Dirty:                 8 kB
+Writeback:             0 kB
+AnonPages:        141304 kB
+Mapped:            35340 kB
+Shmem:              3236 kB
+Slab:              68100 kB
+SReclaimable:      29628 kB
+SUnreclaim:        38472 kB
+KernelStack:        6400 kB
+PageTables:         9500 kB
+NFS_Unstable:          0 kB
+Bounce:                0 kB
+WritebackTmp:          0 kB
+CommitLimit:     1485312 kB
+Committed_AS:     789072 kB
+VmallocTotal:   34359738367 kB
+VmallocUsed:           0 kB
+VmallocChunk:          0 kB
+HardwareCorrupted:     0 kB
+AnonHugePages:     55296 kB
+HugePages_Total:       0
+HugePages_Free:        0
+HugePages_Rsvd:        0
+HugePages_Surp:        0
+Hugepagesize:       2048 kB
+DirectMap4k:      153472 kB
+DirectMap2M:      632832 kB
+DirectMap1G:           0 kB
+jiang@linux-d4xo:~> cat /proc/\$\$/status
+cat: '/proc/$$/status': No such file or directory
+jiang@linux-d4xo:~> cat /proc/$$/status
+Name:   bash
+State:  S (sleeping)
+Tgid:   18421
+Ngid:   0
+Pid:    18421
+PPid:   18390
+TracerPid:      0
+Uid:    1000    1000    1000    1000
+Gid:    100     100     100     100
+FDSize: 256
+Groups: 100
+NStgid: 18421
+NSpid:  18421
+NSpgid: 18421
+NSsid:  18421
+VmPeak:    15592 kB
+VmSize:    15592 kB
+VmLck:         0 kB
+VmPin:         0 kB
+VmHWM:      5568 kB
+VmRSS:      5568 kB
+RssAnon:            2536 kB
+RssFile:            3028 kB
+RssShmem:              4 kB
+VmData:     2504 kB
+VmStk:       132 kB
+VmExe:       664 kB
+VmLib:      2208 kB
+VmPTE:        52 kB
+VmPMD:        12 kB
+VmSwap:        0 kB
+HugetlbPages:          0 kB
+Threads:        1
+SigQ:   0/2811
+SigPnd: 0000000000000000
+ShdPnd: 0000000000000000
+SigBlk: 0000000000010000
+SigIgn: 0000000000380004
+SigCgt: 000000004b817efb
+CapInh: 0000000000000000
+CapPrm: 0000000000000000
+CapEff: 0000000000000000
+CapBnd: 0000003fffffffff
+CapAmb: 0000000000000000
+Seccomp:        0
+Cpus_allowed:   ffffffff,ffffffff,ffffffff,ffffffff
+Cpus_allowed_list:      0-127
+Mems_allowed:   00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000001
+Mems_allowed_list:      0
+voluntary_ctxt_switches:        779
+nonvoluntary_ctxt_switches:     151
+jiang@linux-d4xo:~>
+

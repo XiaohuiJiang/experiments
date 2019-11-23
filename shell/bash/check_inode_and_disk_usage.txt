@@ -1,0 +1,247 @@
+查找磁盘使用率高于10%的分区
+df -h | grep -v "Used"|sort -nr -k 5 -u|sed -e "s/%//g"| awk '$5>10 {print $1 "\t" $5}; $5<10 {exit};'
+
+#找出根目录中比较大的文件，
+du的参数：
+-k 以1K为单位
+-x 排除其他挂载点
+--exclude 跳过一些不用搜索的目录，节约时间
+-S 只统计每个目录中的文件大小，不包含子目录，这样如果某一个目录整体比较大，但是里面的每个文件都不大，也能被找到
+-a 同时统计单个文件的大小
+
+sort的参数：
+-n 按数字比较大小
+-r 反向排序（也就是从大到小排序）
+-k 比较的关键字所在的列，我们比较第一列
+
+linux-8lq6:~/temp # du -k  -x --exclude="proc" --exclude="sys" --exclude="/usr/*" --exclude="/bin/*"  -S / | sort -nr -k 1 | head
+211964  /home/jiang
+87356   /var/adm/backup/rpmdb
+82084   /var/lib/rpm
+32336   /lib/firmware
+31304   /etc/gconf/gconf.xml.schemas
+26364   /etc/gconf/schemas
+20188   /boot
+15388   /root/.mozilla/firefox/ge5ma490.default
+14152   /sbin
+13936   /lib64
+linux-8lq6:~/temp # du -k  -x --exclude="proc" --exclude="sys" --exclude="/usr/*" --exclude="/bin/*"  -S -a / | sort -nr -k 1 | head
+211964  /home/jiang
+120088  /home/jiang/kernel-source-3.0.101-63.1.src.rpm
+91752   /home/jiang/kernel-source-3.0.101-108.87.1.x86_64.rpm
+87356   /var/adm/backup/rpmdb
+82084   /var/lib/rpm
+64208   /var/lib/rpm/Packages
+32336   /lib/firmware
+31304   /etc/gconf/gconf.xml.schemas
+26364   /etc/gconf/schemas
+20188   /boot
+
+#找到挂载点下，已删除但由于文件未关闭依旧占有磁盘空间的文件和对应的进程
+lsof /mnt/lv1 | grep deleted
+a.out   6636 root    3u   REG  254,0        0   12 /mnt/lv1/aaaa (deleted)
+
+#找到目录及其子目录下的所有文件
+linux-d4xo:~/temp/test # ls  -A  -R  -1 /mnt
+/mnt:
+cdrom
+lv1
+
+/mnt/cdrom:
+
+/mnt/lv1:
+lost+found
+
+/mnt/lv1/lost+found:
+
+#统计某个目录下的所有目录名及文件名的个数，也就是该目录下所占用的inode个数
+linux-d4xo:~/temp/test # ls  -A  -R  -1 /mnt | grep -v / | grep -v "^$"
+cdrom
+lv1
+aaaa
+lost+found
+linux-d4xo:~/temp/test # ls  -A  -R  -1 /mnt | grep -v / | grep -v "^$" | wc -l
+4
+linux-d4xo:~/temp/test # ls  -A  -R  -1 / | grep -v / | grep -v "^$" | wc -l
+ls: /.snapshots/1/snapshot: not listing already-listed directory
+3479112
+linux-d4xo:~/temp/test # ls  -A  -R  -1 /usr | grep -v / | grep -v "^$" | wc -l
+227558
+linux-d4xo:~/temp/test # ls  -A  -R  -1 /bin | grep -v / | grep -v "^$" | wc -l
+139
+linux-d4xo:~/temp/test # ls  -A  -R  -1 /proc | grep -v / | grep -v "^$" | wc -l
+76172
+linux-d4xo:~/temp/test # ls  -A  -R  -1 /dev | grep -v / | grep -v "^$" | wc -l
+493
+
+### du命令统计目录下inode使用量
+--inode 参数 显示目录占用的inode数量， 而不是数据块的大小，新版本的du命令才支持
+
+linux-d4xo:~ # du --inode  -S -s /usr/lib64/firefox /usr/lib64/
+17      /usr/lib64/firefox
+1853    /usr/lib64/
+
+linux-d4xo:~ # du --inode  -S -s /dev
+188     /dev
+linux-d4xo:~ # du --inode  -S  /dev
+3       /dev/vg1
+2       /dev/snd/by-path
+8       /dev/snd
+2       /dev/vfio
+1       /dev/hugepages
+1       /dev/mqueue
+5       /dev/bus/usb/002
+2       /dev/bus/usb/001
+1       /dev/bus/usb
+1       /dev/bus
+2       /dev/disk/by-label
+5       /dev/disk/by-uuid
+2       /dev/disk/by-partuuid
+2       /dev/disk/by-partlabel
+12      /dev/disk/by-id
+12      /dev/disk/by-path
+1       /dev/disk
+13      /dev/block
+4       /dev/dri
+5       /dev/bsg
+188     /dev/char
+4       /dev/mapper
+2       /dev/net
+5       /dev/pts
+13      /dev/shm
+2       /dev/cpu
+3       /dev/input/by-id
+7       /dev/input/by-path
+11      /dev/input
+2       /dev/lightnvm
+188     /dev
+
+
+#另外一种方法，统计一个目录下的文件数（inode占用数）
+total_inodes_of(){
+total=0;
+tmp_f=`mktemp tmp.XXXXXXXXXX`
+find $1 -mount -type d -fprint $tmp_f
+while read -r line; do n_inode=`ls -U -1 $line | wc -l`; echo "$n_inode    $line"; total=$(($total + $n_inode)); done < $tmp_f
+rm $tmp_f
+echo "$total in all"
+}
+linux-d4xo:~/temp # total_inodes_of /dev
+203    /dev
+2    /dev/vg1
+8    /dev/snd
+1    /dev/snd/by-path
+1    /dev/vfio
+0    /dev/hugepages
+0    /dev/mqueue
+1    /dev/bus
+2    /dev/bus/usb
+4    /dev/bus/usb/002
+1    /dev/bus/usb/001
+6    /dev/disk
+1    /dev/disk/by-label
+4    /dev/disk/by-uuid
+1    /dev/disk/by-partuuid
+1    /dev/disk/by-partlabel
+11    /dev/disk/by-id
+11    /dev/disk/by-path
+12    /dev/block
+3    /dev/dri
+4    /dev/bsg
+184    /dev/char
+3    /dev/mapper
+1    /dev/net
+2    /dev/pts
+4    /dev/shm
+1    /dev/cpu
+12    /dev/input
+2    /dev/input/by-id
+6    /dev/input/by-path
+1    /dev/lightnvm
+493 in all
+
+#对比ls的-f 和-U 参数
+ls 的参数
+-A 不包含. 和 ..
+-R 递归子目录执行ls
+-1 每行只输出一个文件
+-f 不排序，可节约运行过程中的内存使用量，相当于-aU
+-U 不排序，也不包含.和..
+-s 显示文件大小
+
+···
+jiang@linux-d4xo:~> ls -f -1 -s /bin | head
+total 5184
+   0 .
+   0 ..
+   4 dnsdomainname
+   4 domainname
+  16 hostname
+ 120 netstat
+   4 fillup
+  40 fuser
+ 684 bash
+jiang@linux-d4xo:~> ls -U -1 -s /bin | head
+total 5184
+   4 dnsdomainname
+   4 domainname
+  16 hostname
+ 120 netstat
+   4 fillup
+  40 fuser
+ 684 bash
+   4 sh
+   4 nisdomainname
+
+jiang@linux-d4xo:~> total_inodes_of(){
+> total=0;
+> tmp_f=`mktemp tmp.XXXXXXXXXX`
+> find $1 -mount -type d -fprint $tmp_f
+> while read -r line; do n_inode=`ls -f -1 $line | wc -l`; echo "$n_inode    $line"; total=$(($total + $n_inode)); done < $tmp_f
+> rm $tmp_f
+> echo "$total in all"
+> }
+jiang@linux-d4xo:~> total_inodes_of /mnt
+6    /mnt
+2    /mnt/cdrom
+2    /mnt/nfs-c-a
+2    /mnt/nfs-c-b
+2    /mnt/sdc1
+14 in all
+jiang@linux-d4xo:~> du --inode /mnt
+1       /mnt/cdrom
+1       /mnt/nfs-c-a
+1       /mnt/nfs-c-b
+1       /mnt/sdc1
+5       /mnt
+jiang@linux-d4xo:~> total_inodes_of(){
+> total=0;
+> tmp_f=`mktemp tmp.XXXXXXXXXX`
+> find $1 -type d -fprint $tmp_f
+> while read -r line; do n_inode=`ls -U -1 $line | wc -l`; echo "$n_inode    $line"; total=$(($total + $n_inode)); done < $tmp_f
+> rm $tmp_f
+> echo "$total in all"
+> }
+jiang@linux-d4xo:~> total_inodes_of /mnt
+4    /mnt
+0    /mnt/cdrom
+0    /mnt/nfs-c-a
+0    /mnt/nfs-c-b
+0    /mnt/sdc1
+4 in all
+jiang@linux-d4xo:~> total_inodes_of(){
+> total=0;
+> tmp_f=`mktemp tmp.XXXXXXXXXX`
+> find $1 -type d -fprint $tmp_f
+> while read -r line; do n_inode=`ls -1 $line | wc -l`; echo "$n_inode    $line"; total=$(($total + $n_inode)); done < $tmp_f
+> rm $tmp_f
+> echo "$total in all"
+> }
+jiang@linux-d4xo:~> total_inodes_of /mnt
+4    /mnt
+0    /mnt/cdrom
+0    /mnt/nfs-c-a
+0    /mnt/nfs-c-b
+0    /mnt/sdc1
+4 in all
+···
