@@ -1,0 +1,97 @@
+## ssh -v 打印ssh调试信息， 可以-vv -vvv 打印更多信息
+## perl脚本显示每一行信息出现的时间戳
+time ssh -v 192.168.255.128 id 2>&1  | perl -pe 'use Time::HiRes qw( time ); $_ = sprintf("%.6f %s", time(), $_)'
+
+## strace跟踪客户端和服务端
+客户端：
+jiang@linux-d4xo:~> mkdir ssh.strace
+jiang@linux-d4xo:~> cd ssh.strace/
+jiang@linux-d4xo:~/ssh.strace> strace -ff -o strace.log -tt -T ssh -v 192.168.255.128 id 2>&1
+
+服务端保存每个子进程的stracelog到不同的文件（-ff -o strace.log）：
+linux-8lq6:~ # mkdir sshd.strace
+linux-8lq6:~ # cd sshd.strace/
+linux-8lq6:~/sshd.strace # ls
+linux-8lq6:~/sshd.strace # netstat -ntlp | grep ":22 "
+tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN      21672/sshd
+tcp        0      0 :::22                   :::*                    LISTEN      21672/sshd
+linux-8lq6:~/sshd.strace # strace -ff -o strace.log -tt -T -p 21672
+
+## strace 同时输出到终端和文件
+strace -tt -T ssh 192.168.255.128 id 2>&1 | tee strace.log.`date +%s`
+
+jiang@linux-d4xo:~> time ssh -v 192.168.255.128 id 2>&1  | perl -pe 'use Time::HiRes qw( time ); $_ = sprintf("%.6f %s", time(), $_)'
+1574495972.063255 OpenSSH_7.2p2, OpenSSL 1.0.2j-fips  26 Sep 2016
+1574495972.063550 debug1: Reading configuration data /etc/ssh/ssh_config
+1574495972.063711 debug1: /etc/ssh/ssh_config line 25: Applying options for *
+1574495972.063849 debug1: Connecting to 192.168.255.128 [192.168.255.128] port 22.
+1574495972.063984 debug1: Connection established.
+1574495972.064116 debug1: key_load_public: No such file or directory
+1574495972.064249 debug1: identity file /home/jiang/.ssh/id_rsa type -1
+1574495972.065031 debug1: key_load_public: No such file or directory
+1574495972.065229 debug1: identity file /home/jiang/.ssh/id_rsa-cert type -1
+1574495972.065439 debug1: key_load_public: No such file or directory
+1574495972.065630 debug1: identity file /home/jiang/.ssh/id_dsa type -1
+1574495972.065772 debug1: key_load_public: No such file or directory
+1574495972.065901 debug1: identity file /home/jiang/.ssh/id_dsa-cert type -1
+1574495972.066033 debug1: key_load_public: No such file or directory
+1574495972.066162 debug1: identity file /home/jiang/.ssh/id_ecdsa type -1
+1574495972.066293 debug1: key_load_public: No such file or directory
+1574495972.066445 debug1: identity file /home/jiang/.ssh/id_ecdsa-cert type -1
+1574495972.066593 debug1: key_load_public: No such file or directory
+1574495972.066729 debug1: identity file /home/jiang/.ssh/id_ed25519 type -1
+1574495972.066924 debug1: key_load_public: No such file or directory
+1574495972.067107 debug1: identity file /home/jiang/.ssh/id_ed25519-cert type -1
+1574495972.067703 debug1: Enabling compatibility mode for protocol 2.0
+1574495972.067724 debug1: Local version string SSH-2.0-OpenSSH_7.2
+1574495972.067733 debug1: Remote protocol version 2.0, remote software version OpenSSH_6.6.1
+1574495972.067743 debug1: match: OpenSSH_6.6.1 pat OpenSSH_6.6.1* compat 0x04000000
+1574495972.067751 debug1: Authenticating to 192.168.255.128:22 as 'jiang'
+1574495972.067758 debug1: SSH2_MSG_KEXINIT sent
+1574495972.067766 debug1: SSH2_MSG_KEXINIT received
+1574495972.067773 debug1: kex: algorithm: curve25519-sha256@libssh.org
+1574495972.067780 debug1: kex: host key algorithm: ecdsa-sha2-nistp256
+1574495972.067788 debug1: kex: server->client cipher: chacha20-poly1305@openssh.com MAC: <implicit> compression: none
+1574495972.067797 debug1: kex: client->server cipher: chacha20-poly1305@openssh.com MAC: <implicit> compression: none
+1574495972.067804 debug1: kex: curve25519-sha256@libssh.org need=64 dh_need=64
+1574495972.067811 debug1: kex: curve25519-sha256@libssh.org need=64 dh_need=64
+1574495972.067819 debug1: expecting SSH2_MSG_KEX_ECDH_REPLY
+1574495972.067826 debug1: Server host key: ecdsa-sha2-nistp256 SHA256:0k5jyIiE1mVvPs/R6LYZW+Apx2RWnDPYPdVrKvqjL3Y
+1574495972.067833 debug1: Host '192.168.255.128' is known and matches the ECDSA host key.
+1574495972.067840 debug1: Found key in /home/jiang/.ssh/known_hosts:2
+1574495972.067847 debug1: rekey after 134217728 blocks
+1574495972.067854 debug1: SSH2_MSG_NEWKEYS sent
+1574495972.067861 debug1: expecting SSH2_MSG_NEWKEYS
+1574495972.067868 debug1: rekey after 134217728 blocks
+1574495972.067875 debug1: SSH2_MSG_NEWKEYS received
+1574495972.067882 debug1: SSH2_MSG_SERVICE_ACCEPT received
+1574495972.067896 debug1: Authentications that can continue: publickey,keyboard-interactive
+1574495972.067904 debug1: Next authentication method: publickey
+1574495972.067911 debug1: Trying private key: /home/jiang/.ssh/id_rsa
+1574495972.067919 debug1: Trying private key: /home/jiang/.ssh/id_dsa
+1574495972.067926 debug1: Trying private key: /home/jiang/.ssh/id_ecdsa
+1574495972.067933 debug1: Trying private key: /home/jiang/.ssh/id_ed25519
+1574495972.067940 debug1: Next authentication method: keyboard-interactive
+Password:
+1574495977.945995 debug1: Authentication succeeded (keyboard-interactive).
+1574495977.946028 Authenticated to 192.168.255.128 ([192.168.255.128]:22).
+1574495977.946031 debug1: channel 0: new [client-session]
+1574495977.946033 debug1: Requesting no-more-sessions@openssh.com
+1574495977.946035 debug1: Entering interactive session.
+1574495977.946037 debug1: pledge: network
+1574495977.947492 debug1: Sending environment.
+1574495977.947502 debug1: Sending env LANG = en_US.UTF-8
+1574495977.947505 debug1: Sending command: id
+1574495977.974241 debug1: client_input_channel_req: channel 0 rtype exit-status reply 0
+1574495977.974258 debug1: client_input_channel_req: channel 0 rtype eow@openssh.com reply 0
+1574495977.974261 uid=1000(jiang) gid=100(users) groups=100(users)
+1574495977.974263 debug1: channel 0: free: client-session, nchannels 1
+1574495977.974266 debug1: fd 1 clearing O_NONBLOCK
+1574495977.974268 Transferred: sent 1956, received 2244 bytes, in 0.0 seconds
+1574495977.974270 Bytes per second: sent 69999.3, received 80306.0
+1574495977.974271 debug1: Exit status 0
+
+real    0m6.129s
+user    0m0.034s
+sys     0m0.019s
+

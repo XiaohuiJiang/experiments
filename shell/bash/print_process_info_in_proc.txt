@@ -1,0 +1,24 @@
+## 通过/proc目录可以直接找到进程相关信息并打印的一些例子
+
+## 打印进程的oom_score
+
+#!/bin/bash
+for proc in $(find /proc -maxdepth 1 -regex '/proc/[0-9]+'); do
+    printf "%2d %5d %s\n" \
+        "$(cat $proc/oom_score)" \
+        "$(basename $proc)" \
+        "$(cat $proc/cmdline | tr '\0' ' ' | head -c 50)"
+done 2>/dev/null | sort -nr | head -n 40
+
+## 统计系统页表占用的内存大小
+
+cat /proc/meminfo | grep PageTables
+
+## 每个进程的页表占用的内存累计
+pids=$(ls /proc | grep -E [0-9])
+PTEs=$(for pid in $pids; do cat /proc/$pid/status | grep VmPTE | awk '{print $2}'; done 2>/dev/null)
+total_PTEs=0
+for i in $PTEs; do total_PTEs=$(( $total_PTEs + $i)); done
+echo $total_PTEs
+
+
