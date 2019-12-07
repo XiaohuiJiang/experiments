@@ -1,0 +1,118 @@
+linux系统常见问题排查思路：
+
+# 进程和内存
+## CPU wait 高， 
+找到IO busy对应的磁盘，查看磁盘的read/write/iops, 如果其中某一项比较高，尝试找到访问这个磁盘的进程和应用。如果都不高，可能是存储系统的带宽不足。
+
+## 找到占用内存多的进程
+free -k 可以看到系统整体内存分布情况
+cat /proc/meminfo 总的HugePages_Total，Slab，PageTables，KernelStack 是内核占用的内存，Cached和Buffers是文件系统缓存占用，Shmem是tempfs和ipc资源占用的内存。
+top 或ps aux 找到占用内存多的进程，pmap 进程pid可以看到详细的进程内存使用统计
+
+## 进程挂起或超时，响应慢
+strace -tt -T -ff -o output.log <command 或 -p 进程pid> 跟踪系统调用花费的时间
+
+## 找到gnome-shell进程，判断是否占用过多内存，需要做rcxdm restart
+linux-d4xo-2-2:/usr/src/linux # ps -aux | head -1
+USER        PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+linux-d4xo-2-2:/usr/src/linux # ps -aux | grep gnome-shell | grep -v grep
+gdm        1576  0.0  7.6 1349132 56444 ?       Sl   Nov24   1:28 gnome-shell --mode=gdm
+这个需求是由于gdm版本过低，存在内存泄漏的bug又不想升级，采用的一个workaround。
+
+## 如何知道进程运行在那个CPU上
+ps -H -o pid,psr,comm -p <pid> PSR对应的列可以显示每个线程所在的CPU
+或者top -H 然后按“f” “j” 显示线程所在的CPU
+cat /proc/<pid>/status 可以看到进程更多的信息
+taskset -p <pid> 显示pid对应的进程的cpu affinity
+taskset -p <pid> <cpu mask> 设置进程可用的cpu"
+
+## mysql内存利用率分析，为何swap和cache都高	
+1)top 里面打开swap field可以看到每个进程的swap使用情况
+grep VmSwap /proc/*/status | sort -k 2 -nr | head 也可以
+swap分区(6757MB used)主要被这几个进程使用：
+31037/status:VmSwap:     2586484 kB-----> gnome-shell 2586MB
+38697/status:VmSwap:     2062276 kB------>mysqld      2062MB
+46132/status:VmSwap:     1037228 kB------>mysqld      1037MB
+56692/status:VmSwap:      370964 kB------>java         370MB
+
+2)
+free -m中的cache 28G主要由以下几个部分组成：
+cat /proc/meminfo里面找到以下信息
+Active(file):   10832768 kB   --->10G
+Inactive(file): 10801516 kB   --->10G
+Shmem:           3513784 kB   --->3.5G
+SReclaimable:    4699044 kB   --->4.6G
+
+所有进程占用的file cache都不算高，所以cache主要是kernel自己占用的。
+grep RssFile /proc/*/status | sort -k 2 -nr | head 用这个命令找到进程占用cache最大的几个
+31037/status:RssFile:      15880 kB
+38697/status:RssFile:       8880 kB
+46132/status:RssFile:       9836 kB
+
+3)系统目前的mem压力不高，cpu压力也不搞，还有大量的inactive页面没有回收，目前状态存在内存泄漏的可能性比较小。
+如果有怀疑可以对比大量nmon历史数据，观察mysql占用的内存是否持续增加。
+
+4)
+cache部分比较高，是最近一段时间没有大的内存需求，所以没有执行内存回收算法。
+swap达到6.7G，我认为是历史上曾经有大的内存需求，导致一些内存swapout，但是后来这些内存没有再次使用也没有释放，所以就留在了swap分区。
+这种情况是系统长期运行492天以后积累的结果。
+
+
+
+
+# 文件系统和存储
+## df -h hung 或者 ls 某个目录挂住
+通常是/etc/fstab中定义的nfs连接中断了。
+nfs客户端cat /etc/fstab，联系应用侧，是否可以umount 所有nfs的数据盘
+lsof <nfs挂载目录> 可以看到正在使用nfs数据盘的进程，确认可以kill 或者退出这些进程
+确认nfs server端已正常，rcnfs restart
+
+## nfs 服务重启停在 starting NFS client services： sm-notify idmapd
+这个输出信息是suse11的nfs服务脚本启动时打印的。 suse12的nfs服务restart，只是做了umount -at nfs,nfs4 和mount -at nfs,nfs4
+尝试修改fstab中的nfs 改为nfs4 (mount type)， 再次rcnfs restart
+参考： https://www.cnblogs.com/f-ck-need-u/p/7302598.html
+
+## mount -o rw,remount 出错， 提示write protected
+## umount 提示busy， lsof 和fuser 都没有进程在使用这个目录
+cat /etc/exports 检查是否是nfs export的目录， 是否有nfs客户端连接
+
+## nfs客户端只有读权限，想要改到读写权限
+从server端开始，/etc/exports 设置rw权限，根据是否squash判断客户端的用户到了server对应哪个UID，设置此UID对export出去的目录的写权限， 并且此目录所在的分区mount选项也是rw
+客户端mount nfs是指定rw选项
+
+## yast2 进Partitioner时出错 提示 YaST Expert Partitioner Error - key not found: ""partitions""
+This bug is fixed in the ""yast2-storage"" package version 3.2.16.1-2.5.1 or higher.
+linux-d4xo:~ # rpm -F ./yast2-storage-3.2.16.4-2.14.1.x86_64.rpm
+Updating /etc/sysconfig/storage...
+linux-d4xo:~ # rpm -qa | grep yast2-storage
+yast2-storage-3.2.16.4-2.14.1.x86_64
+https://www.suse.com/support/kb/doc/?id=7023460
+
+
+## 虚拟机硬盘删除后，vg找不到对应的pv了，怎么解决vg报错
+vgreduce --removemissing <vg_name>
+
+
+
+
+# 网络问题
+## 网络ping不通
+ping自己的IP能通，说明配置没问题，rcnetwork restart之后再次尝试，ping 网关和同网段其它机器的IP。
+从其他机器tracert 这台机器的ip，检查网络路由是否正确到达网关。
+tcpdump 抓包，检查icmp数据包request 和 reply 分别到达什么位置。
+
+## ping丢包， ssh登录后，系统响应慢
+top 检查cpu是否busy，并找到cpu利用率高的进程
+free -m 检查系统内存是否充足，swap使用多不多
+iostat -x 1 1 检查是否磁盘busy
+sar -n ALL 1 5 检查网络流量是否占满
+
+## bond和eth配置问题
+打开yast 检查一遍网络配置，通过yast重新配置网卡，可以自动更新或生成/etc/sysconfig/network/ifg-* 文件
+
+## ssh登陆慢， messages里面看到很多pam_systemd: failed to create session: Activation of org.freedesktop.login1 timed out
+需要升级dbus软件包
+安装之后需要reboot操作系统
+rpm -F dbus-1-x11-1.8.22-29.10.2.x86_64.rpm dbus-1-1.8.22-29.10.2.x86_64.rpm libdbus-1-3-1.8.22-29.10.2.x86_64.rpm libdbus-1-3-32bit-1.8.22-29.10.2.x86_64.rpm
+rpm -qa | grep dbus
+reboot

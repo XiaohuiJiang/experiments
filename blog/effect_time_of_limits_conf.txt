@@ -1,0 +1,32 @@
+各种limits设置如何生效，是否影响已经运行的进程，是否对开机时启动的进程也有效？
+
+### 经过suse11和suse12上试验，limits.conf中的修改只对修改文件之后登陆的session起作用，不影响已经运行的进程。修改之后reboot，也不能影响启动过程中运行的进程。
+只有登录的过程中才会调用到pam_limits.so,才会读/etc/security/limits.conf中的设置。
+
+### ulimit 命令查询和设置当前shell及其新fork的子进程的limits
+
+### prlimit 显示和设置进程的limits，设置会被新fork的子进程继承
+
+C语言版本的prlimit：
+NAME
+       getrlimit, setrlimit, prlimit - get/set resource limits
+
+SYNOPSIS
+       #include <sys/time.h>
+       #include <sys/resource.h>
+
+       int getrlimit(int resource, struct rlimit *rlim);
+       int setrlimit(int resource, const struct rlimit *rlim);
+
+       int prlimit(pid_t pid, int resource, const struct rlimit *new_limit,
+                   struct rlimit *old_limit);
+
+   Feature Test Macro Requirements for glibc (see feature_test_macros(7)):
+
+       prlimit(): _GNU_SOURCE
+
+### 系统级别的资源配置命令和函数, 查看man page获取跟多信息
+getconf
+sysconf
+sysctl
+files under /proc/sys/

@@ -1,0 +1,24 @@
+ssh登陆慢，pam_systemd: failed to create session: Activation of org.freedesktop.login1 timed out	
+"
+1）dbus-monitor --system监控dbus message， 开始一个新的ssh登录，对比
+signal sender=:1.1 -> dest=(null destination) serial=10742 path=/org/freedesktop/login1; interface=org.freedesktop.login1.Manager; member=SessionNew 有关的信息
+2）dbus-send --system --type=method_call --print-reply --dest=org.freedesktop.login1 /org/freedesktop/login1 org.freedesktop.DBus.Introspectable.Introspect 有没有正确返回？
+3）loginctl 列出系统当前的session
+4）ulimit -n; cat /proc/sys/fs/file-nr 检查当前打开文件限制
+5)systemctl status systemd-logind
+strace -p <pidof systemd-logind> -tt -T 观察ssh登录过长中systemd-logind的响应，对比正常登录
+strace -p <pidof dbus> -tt -T 观察ssh登录过长中dbus的响应
+strace -p 1 -tt -T  观察systemd的响应
+6）ls -l /run/systemd/system/ 检查这个目录下是否有未清理的文件，df -h查看这个mount点的剩余空间
+7）busctl 列出dbus和进程的关系信息，是否有进程打开org.freedesktop.login1
+8）相关的bug
+https://bugs.freedesktop.org/show_bug.cgi?id=95263
+https://bugs.freedesktop.org/show_bug.cgi?id=95619
+https://github.com/systemd/systemd/issues/2925
+9）解决方案upgrade dbus
+https://bugzilla.suse.com/show_bug.cgi?id=1071698 提到了这个bug
+安装之后需要reboot操作系统
+rpm -F dbus-1-x11-1.8.22-29.10.2.x86_64.rpm dbus-1-1.8.22-29.10.2.x86_64.rpm libdbus-1-3-1.8.22-29.10.2.x86_64.rpm libdbus-1-3-32bit-1.8.22-29.10.2.x86_64.rpm
+rpm -qa | grep dbus
+reboot
+10）gdbus 也是类似的dbus调试工具"

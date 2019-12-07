@@ -1,0 +1,5 @@
+ip link/ ip address输出中的state UNKNOWN是什么状态	
+"参考资料： https://tools.ietf.org/html/rfc2863
+内核文档  Documentation/networking/operstates.txt
+网络接口有2个状态，管理状态和运行状态，这个位置显示的是运行状态。跟网卡驱动是否能够检测到相关信息有关。
+"

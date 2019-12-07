@@ -1,0 +1,19 @@
+/etc/default/passwd中CRYPT_FILES=sha512是什么用途
+/etc/default/passwd用于pam_unix2.so使用，
+CRYPT_FILES=sha512指定本地/etc/shadow中密码的加密或哈希算法。
+只有当/etc/pam.d/common-password配置了pam_unix2.so时才生效。
+当配置为pam_unix.so时忽略CRYPT_FILES，SLES 11只按DES，SLES 12只按SHA512。
+
+例如/etc/shadow中：
+czhang:$1$XopUMbMK$ksXVes4LZaFCH/Xz4ZEke.:18081:0:99999:7:::
+密码这一段，如果前面没有$就表示DES，前面2个$之间为1表示MD5，2表示blowfish，5表示SHA256，6表示SHA512
+第二个和第三个$之间为“盐”，一段随机数据。最后一段为哈希后的密码。
+
+修改CRYPT_FILES指定的算法后，再修改密码可以看到/etc/shadow中对应的用户的数据变化。
+
+参考
+man 5 shadow
+man crypt
+
+pam参考资料
+https://www.cnblogs.com/klb561/p/9236360.html

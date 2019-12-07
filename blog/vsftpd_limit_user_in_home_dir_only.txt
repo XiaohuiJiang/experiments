@@ -1,0 +1,11 @@
+用vsftpd服务来控制ftp用户访问的权限，控制指定用户只能访问自己的HOME目录或子目录
+	"采用的方法步骤如下： 
+        1. 修改/etc/vsftpd.conf 配置文件，取消如下三行的注释，并将chroot_local_user的值改为NO 
+        chroot_local_user=NO 
+        chroot_list_enable=YES 
+        chroot_list_file=/etc/vsftpd.chroot_list 
+        2. 新建/etc/vsftpd.chroot_list文件，将需要限制的用户写在里面，一个用户一行， 
+        3. 重启vsftpd服务 
+                service vsftpd restart 
+用以上步骤设置后登录ftp服务器运行ls命令看到一个出错信息：500 OOPS: vsftpd: refusing to run with writable root inside chroot()， 查找网上资料在/etc/vsftpd.conf里面最后增加下面一行就可以了。
+allow_writeable_chroot=YES"

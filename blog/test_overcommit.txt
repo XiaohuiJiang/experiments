@@ -1,0 +1,154 @@
+
+overcommit_memory=1是否可以改善服务器内存不足的情况
+
+文档对这个参数的说明：
+      /proc/sys/vm/overcommit_memory
+              This file contains the kernel virtual memory accounting mode.
+              Values are:
+
+                     0: heuristic overcommit (this is the default)
+                     1: always overcommit, never check
+                     2: always check, never overcommit
+
+              In mode 0, calls of mmap(2) with MAP_NORESERVE are not
+              checked, and the default check is very weak, leading to the
+              risk of getting a process "OOM-killed".
+
+              In mode 1, the kernel pretends there is always enough memory,
+              until memory actually runs out.  One use case for this mode is
+              scientific computing applications that employ large sparse
+              arrays.  In Linux kernel versions before 2.6.0, any nonzero
+              value implies mode 1.
+
+              In mode 2 (available since Linux 2.6), the total virtual
+              address space that can be allocated (CommitLimit in /proc/mem‐
+              info) is calculated as
+
+                  CommitLimit = (total_RAM - total_huge_TLB) *
+                                overcommit_ratio / 100 + total_swap
+
+              where:
+
+                   *  total_RAM is the total amount of RAM on the system;
+
+                   *  total_huge_TLB is the amount of memory set aside for
+                      huge pages;
+
+                   *  overcommit_ratio is the value in /proc/sys/vm/overcom‐
+                      mit_ratio; and
+
+                   *  total_swap is the amount of swap space.
+				   
+"根据文档说明如果top中看到的VIRT很大，RES很小，这种情况overcommit_memory=1会有效果.
+但是是否有性能问题，需要实际部署之后应用侧判断，我理解这个设置内存用的多了以后会大量使用swap空间。 
+这个设置跟overcommit_memory=0比较可以减少OOM的可能性，但是如果物理内存真的不足还是会OOM。
+写了一个程序测试虚拟内存分配和物理内存分配，overcommit_memory=0和overcommit_memory=1对应用的影响基本一样，都是耗尽物理内存和swap空间后OOM。
+"
+overcommit_memory=2 不等swap耗尽，直到达到CommitLimit，就不再分配，也不会OOM。
+
+jiang@linux-8lq6:~/temp> cat /proc/meminfo | grep -i commit
+CommitLimit:     1497136 kB
+Committed_AS:    1347656 kB
+jiang@linux-8lq6:~/temp> free -k
+             total       used       free     shared    buffers     cached
+Mem:        747624     678480      69144        556        252      25168
+-/+ buffers/cache:     653060      94564
+Swap:      1123324     457400     665924
+jiang@linux-8lq6:~/temp> ./a.out 34600 36400 >/dev/null &
+[9] 4941
+jiang@linux-8lq6:~/temp> mmap: Cannot allocate memory
+
+[9]+  Exit 1                  ./a.out 34600 36400 > /dev/null
+jiang@linux-8lq6:~/temp> free -k
+             total       used       free     shared    buffers     cached
+Mem:        747624     542612     205012        132        252      26236
+-/+ buffers/cache:     516124     231500
+Swap:      1123324     594572     528752
+jiang@linux-8lq6:~/temp> cat /proc/meminfo | grep -i commit
+CommitLimit:     1497136 kB
+Committed_AS:    1347656 kB
+jiang@linux-8lq6:~/temp> cat /proc/sys/vm/overcommit_memory
+2
+
+达到CommitLimit后，即使只分配虚拟内存也不成功。
+jiang@linux-8lq6:~/temp>
+jiang@linux-8lq6:~/temp> ./a.out 34600 0 >/dev/null &
+[9] 4965
+jiang@linux-8lq6:~/temp> mmap: Cannot allocate memory
+
+[9]+  Exit 1                  ./a.out 34600 0 > /dev/null
+
+
+此时，设overcommit_memory=0或overcommit_memory=1，还可以继续分配虚拟内存和物理内存
+
+jiang@linux-8lq6:~/temp> sudo /sbin/sysctl vm.overcommit_memory=0
+root's password:
+vm.overcommit_memory = 0
+jiang@linux-8lq6:~/temp> ./a.out 34600 0 >/dev/null &
+[9] 4980
+jiang@linux-8lq6:~/temp> sudo /sbin/sysctl vm.overcommit_memory=1
+vm.overcommit_memory = 1
+jiang@linux-8lq6:~/temp> ./a.out 34600 0 >/dev/null &
+[10] 5010
+jiang@linux-8lq6:~/temp> ./a.out 34600 34600 >/dev/null &
+[11] 5017
+jiang@linux-8lq6:~/temp> ps u
+USER        PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+jiang      4512  0.0  0.1  14016  1332 pts/0    Ss   04:34   0:00 -bash
+jiang      4596  0.0  0.0 142276     0 pts/0    S    04:36   0:00 ./a.out 34600 0
+jiang      4606  0.0  2.1 142276 16260 pts/0    S    04:37   0:00 ./a.out 34600 36400
+jiang      4884  0.0  0.0 142276   144 pts/0    S    04:37   0:00 ./a.out 34600 36400
+jiang      4894  0.0  0.2 142276  1860 pts/0    S    04:37   0:00 ./a.out 34600 36400
+jiang      4905  0.0  0.3 142276  2792 pts/0    S    04:37   0:00 ./a.out 34600 36400
+jiang      4916  0.0 15.0 142276 112572 pts/0   S    04:37   0:00 ./a.out 34600 36400
+jiang      4924  0.0 18.5 142276 138636 pts/0   S    04:38   0:00 ./a.out 34600 36400
+jiang      4931  0.0 18.5 142276 138632 pts/0   S    04:38   0:00 ./a.out 34600 36400
+jiang      4980  0.0  0.0 142276   304 pts/0    S    04:45   0:00 ./a.out 34600 0
+jiang      5010  0.0  0.0 142276   300 pts/0    S    04:45   0:00 ./a.out 34600 0
+jiang      5017  2.1 18.5 142276 138636 pts/0   S    04:45   0:00 ./a.out 34600 34600
+
+
+这是测试程序的源代码：2个参数，分别指定要分配的虚拟内存和物理内存的页面数。
+分配虚拟内存用mmap匿名映射，向这个虚拟空间写入一个数据，即可引起操作系统的pagefault，从而分配物理页面。
+
+#include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
+#include <string.h>
+
+#define handle_error(msg) \
+        do { perror(msg); exit(EXIT_FAILURE); } while (0)
+
+int main (int argc, char * argv[])
+{
+    int fd = -1;
+        off_t offset = 0;
+        void * addr;
+        pid_t pid = getpid();
+        long numofpages_mmap = 1;
+        long numofpages_write = 0;
+    size_t pagesize = sysconf(_SC_PAGE_SIZE);
+
+        (argc > 1) ? numofpages_mmap = atol(argv[1]) : 1;
+        (argc > 2) ? numofpages_write = atol(argv[2]) : 0;
+        if (numofpages_write > numofpages_mmap)
+                numofpages_write = numofpages_mmap;
+
+    printf("%s numofpages_mmap %ld, numofpages_write %ld, pagesize %d\n", argv[0], numofpages_mmap, numofpages_write, pagesize);
+
+
+        for (long i=0; i < numofpages_mmap; i++) {
+        addr = mmap(NULL, pagesize, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, fd, offset);
+                if (addr == MAP_FAILED)
+                        handle_error("mmap");
+                printf("pid %d mmap returned at 0x%p\n", pid, addr);
+                if (i < numofpages_write){
+                    *(long *)addr = i;
+                    printf("wrote\n");
+                }
+        }
+        sleep(600);
+}

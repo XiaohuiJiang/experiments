@@ -1,0 +1,3 @@
+一个lv设备，remount，rw的时候返回出错， write protected	， umount 提示device busy， lsof 看不到打开此目录的进程
+fstab里面没有设置ro选项， mount命令出来的当前状态是ro，
+cat /etc/exports 判定是nfs server exports出去的目录，修改exports权限。检查是否有客户端连接。
