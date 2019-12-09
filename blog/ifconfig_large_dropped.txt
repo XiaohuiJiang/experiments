@@ -1,0 +1,34 @@
+ifconfig 发现RX dropped 数字比较大的理解
+
+
+## 现象	
+ifconfig 发现RX dropped 数字比较大，RX errors 和RX overruns 都是0.
+登录检查时sar -n DEV 1 5 流量不高，ping延时也不大，messages没有异常信息，uptime很大，猜测是累计的dropped counter。对系统性能无影响。
+Netstat -s 统计网络层 TCP UDP 未发现异常。
+ethtool -S eth0 统计网卡信息,未见异常。
+网上找到同样case，说是内核统计dropped测方式发生了变化，对业务应用无影响。
+
+以下信息根据网上资料整理所得，未验证。
+
+## 判断方法：
+运行tcpdump后， ifconfig中的dropped 不再增加。
+
+
+## ifconfig 部分字段的理解：
+RX errors: 表示总的收包的错误数量，这包括 too-long-frames 错误，Ring Buffer 溢出错误，crc 校验错误，帧同步错误，fifo overruns 以及 missed pkg 等等。
+RX dropped: 表示数据包已经进入了 Ring Buffer，但是由于内存不够，上层协议不支持等系统原因，导致在拷贝到内存的过程中被丢弃，netstat -s可以看到更详细的原因。
+RX overruns: 表示了 fifo 的 overruns，这是由于 Ring Buffer(aka Driver Queue) 传输的 IO 大于 kernel 能够处理的 IO 导致的，而 Ring Buffer 则是指在发起 IRQ 请求之前的那块 buffer。
+很明显，overruns 的增大意味着数据包没到 Ring Buffer 就被网卡物理层给丢弃了，而 CPU 无法即使的处理中断是造成 Ring Buffer 满的原因之一，
+上面那台有问题的机器就是因为 interruprs 分布的不均匀(都压在 core0)，没有做 affinity 而造成的丢包。
+可以尝试设置驱动程序启用多个队列，分别在不同的CPU上产生中断，增加报文的并行处理速度。增加网络层的接收缓冲区memory大小，减少应用的数目，降低CPU的压力，使应用层能够尽快处理收到的数据包。
+RX frame: 表示 misaligned 的 frames。
+
+对于 TX 的来说，出现上述 counter 增大的原因主要包括 aborted transmission, errors due to carrirer, fifo error, heartbeat erros 以及 windown error，而 collisions 则表示由于 CSMA/CD 造成的传输中断。
+
+## 参考信息
+http://www.361way.com/ifconfig-dropped-rx-packets/5722.html
+http://blog.sina.com.cn/s/blog_b87700f50102wusb.html
+https://www.cnblogs.com/lovemyspring/articles/5087895.html
+http://www.faqs.org/docs/linux_network/x-087-2-iface.ifconfig.html
+http://blog.hyfather.com/blog/2013/03/04/ifconfig/
+https://blog.csdn.net/lqxandroid2012/article/details/79650821

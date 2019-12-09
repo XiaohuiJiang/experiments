@@ -11,6 +11,8 @@ top 或ps aux 找到占用内存多的进程，pmap 进程pid可以看到详细�
 
 ## 进程挂起或超时，响应慢
 strace -tt -T -ff -o output.log <command 或 -p 进程pid> 跟踪系统调用花费的时间
+cat /proc/<pid>/stack 可以看到进程当前的内核调用栈
+cat /proc/<pid>/syscall 可以看到进程当前的内核系统调用参数
 
 ## 找到gnome-shell进程，判断是否占用过多内存，需要做rcxdm restart
 linux-d4xo-2-2:/usr/src/linux # ps -aux | head -1
@@ -94,7 +96,6 @@ vgreduce --removemissing <vg_name>
 
 
 
-
 # 网络问题
 ## 网络ping不通
 ping自己的IP能通，说明配置没问题，rcnetwork restart之后再次尝试，ping 网关和同网段其它机器的IP。
@@ -116,3 +117,22 @@ sar -n ALL 1 5 检查网络流量是否占满
 rpm -F dbus-1-x11-1.8.22-29.10.2.x86_64.rpm dbus-1-1.8.22-29.10.2.x86_64.rpm libdbus-1-3-1.8.22-29.10.2.x86_64.rpm libdbus-1-3-32bit-1.8.22-29.10.2.x86_64.rpm
 rpm -qa | grep dbus
 reboot
+
+## ifconfig 发现一批11sp2的机器RX dropped 数字比较大	
+登录检查时sar -n DEV 1 5 流量不高，ping延时也不大，messages没有异常信息，uptime很大，猜测是累计的dropped counter。对系统性能无影响。
+Netstat -s 统计网络层 TCP UDP 未发现异常。
+ethtool -S eth0 统计网卡信息,未见异常。
+网上找到同样case，说是内核统计dropped测方式发生了变化，对业务应用无影响。
+参考信息
+http://www.361way.com/ifconfig-dropped-rx-packets/5722.html
+http://blog.sina.com.cn/s/blog_b87700f50102wusb.html
+https://www.cnblogs.com/lovemyspring/articles/5087895.html
+http://www.faqs.org/docs/linux_network/x-087-2-iface.ifconfig.html
+http://blog.hyfather.com/blog/2013/03/04/ifconfig/
+https://blog.csdn.net/lqxandroid2012/article/details/79650821
+
+
+## 机器异常重启原因分析步骤
+先看last输出，找到reboot的时间，这个是关机后启动的时间，关机的时间在reboot之前。
+如果reboot前有crash或者down的记录，表示关机之前这个用户一直处于登录状态，还未退出，括号里的时间是用户登陆的时间小时数和分钟数，可以计算关机的准确时间。
+然后根据这个时间查找/var/log/messages中是否有相关信息。
