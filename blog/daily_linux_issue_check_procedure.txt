@@ -5,9 +5,12 @@ linux系统常见问题排查思路：
 找到IO busy对应的磁盘，查看磁盘的read/write/iops, 如果其中某一项比较高，尝试找到访问这个磁盘的进程和应用。如果都不高，可能是存储系统的带宽不足。
 
 ## 找到占用内存多的进程
+参考 http://linuxperf.com/?p=142
 free -k 可以看到系统整体内存分布情况
-cat /proc/meminfo 总的HugePages_Total，Slab，PageTables，KernelStack 是内核占用的内存，Cached和Buffers是文件系统缓存占用，Shmem是tempfs和ipc资源占用的内存。
-top 或ps aux 找到占用内存多的进程，pmap 进程pid可以看到详细的进程内存使用统计
+cat /proc/meminfo 总的HugePages_Total*Hugepagesize，Slab，PageTables，KernelStack 是内核占用的内存，
+Cached和Buffers是文件系统缓存占用，Shmem是tempfs和ipc资源占用的内存，shmem包含在cached里面。
+top 或ps aux 找到占用内存多的进程，pmap 进程pid可以看到详细的进程内存使用统计，
+Committed_AS 是所有进程占用的物理内存
 
 ## 进程挂起或超时，响应慢
 strace -tt -T -ff -o output.log <command 或 -p 进程pid> 跟踪系统调用花费的时间
@@ -131,6 +134,21 @@ http://www.faqs.org/docs/linux_network/x-087-2-iface.ifconfig.html
 http://blog.hyfather.com/blog/2013/03/04/ifconfig/
 https://blog.csdn.net/lqxandroid2012/article/details/79650821
 
+## 限制用户只能做sftp不能做ssh
+在 /etc/ssh/sshd_config 增加以下的内容
+Subsystem internal-sftp /usr/lib/ssh/sftp-server
+Match User testsftponly      # Match指令主要用于条件匹配。这里匹配用户，也可以指定Group
+ChrootDirectory /data_sftp/ #限制sftp的起始目录，根据实验目录owner需要是 root root， 不指定这一行，起始目录为用户的主目录
+X11Forwarding no        # 禁止X11转发
+AllowTcpForwarding no   # 禁止tcp转发
+ForceCommand internal-sftp # 限制用户除了能执行internal-sftp中允许的命令外，其他命令啥也执行不了
+
+改完之后重启sshd服务， 即可生效。
+
+参考
+https://blog.csdn.net/gaotianyou/article/details/81236047
+https://blog.csdn.net/xiaoxiao_yingzi/article/details/90446839
+Man sshd_config
 
 ## 机器异常重启原因分析步骤
 先看last输出，找到reboot的时间，这个是关机后启动的时间，关机的时间在reboot之前。
