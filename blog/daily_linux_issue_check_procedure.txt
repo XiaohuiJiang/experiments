@@ -3,6 +3,11 @@ linux系统常见问题排查思路：
 # 进程和内存
 ## CPU wait 高， 
 找到IO busy对应的磁盘，查看磁盘的read/write/iops, 如果其中某一项比较高，尝试找到访问这个磁盘的进程和应用。如果都不高，可能是存储系统的带宽不足。
+iostat -x 1 3 主要看后面2次的数据，是实时的，第一次的数据是以前累积的
+参考
+http://linuxperf.com/?p=156  容易被误读的iostat
+http://linuxperf.com/?p=40   disk 100% busy，谁造成的？
+http://linuxperf.com/?p=161  利用blktrace分析IO性能
 
 ## 找到占用内存多的进程
 参考 http://linuxperf.com/?p=142
@@ -62,6 +67,11 @@ cache部分比较高，是最近一段时间没有大的内存需求，所以没
 swap达到6.7G，我认为是历史上曾经有大的内存需求，导致一些内存swapout，但是后来这些内存没有再次使用也没有释放，所以就留在了swap分区。
 这种情况是系统长期运行492天以后积累的结果。
 
+5)更多说明
+Linux的内存分为2种，cache中的内存是file based，回收的时候可以直接写到磁盘上。 不在cache中的内存叫做匿名内存，回收的时候把这部分写到swap分区。
+在日常有大的内存申请的时候，如果free的部分不足，系统会分别回收部分cache空间和swapout一些匿名内存。即使swappiness设为5，每次也会使用部分swap空间。如果swap中的内容不再被应用程序使用到，应用也没有free这部分内容，就会一直留在swap中。
+在这个例子中mysqld的swap部分就是长期不被用到也没有free的部分，至于判断是否是内存泄漏，要看mysqld中是否真的需要保留这么多长期不用的内存。从目前现象来看，也是类似内存泄漏的。如果mysqld中能够及时释放这些内存，也就不会有大量的swap空间被使用。
+
 
 
 
@@ -84,6 +94,12 @@ cat /etc/exports 检查是否是nfs export的目录， 是否有nfs客户端连�
 ## nfs客户端只有读权限，想要改到读写权限
 从server端开始，/etc/exports 设置rw权限，根据是否squash判断客户端的用户到了server对应哪个UID，设置此UID对export出去的目录的写权限， 并且此目录所在的分区mount选项也是rw
 客户端mount nfs是指定rw选项
+
+## df -h挂起，rcnfs restart 挂起，不返回	
+切换nfs server的过程中发生的，
+mount 查看当前挂载的nfs目录，发现要挂载的目录被旧的nfs server占用了，
+那个nfs server在fstab里面是被注释掉的状态。这样就不能rcnfs stop来释放这个目录。
+用umount -l <挂载的目录>，然后再rcnfs start 将这个目录挂载到新的nfs server上
 
 ## yast2 进Partitioner时出错 提示 YaST Expert Partitioner Error - key not found: ""partitions""
 This bug is fixed in the ""yast2-storage"" package version 3.2.16.1-2.5.1 or higher.

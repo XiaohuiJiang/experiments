@@ -1,0 +1,165 @@
+<3>[64040355.247071] INFO: task xfsaild/sdc:3535 blocked for more than 3600 seconds. 
+<3>[64040355.254305] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message. 
+<6>[64040355.262378] xfsaild/sdc     D 0000000000000404     0  3535      2 0x00000000 
+<4>[64040355.262386]  ffff88578cc1db20 0000000000000046 ffff88578cc1c010 0000000000010900 
+<4>[64040355.262399]  0000000000010900 0000000000010900 0000000000010900 ffff88578cc1dfd8 
+<4>[64040355.262418]  ffff88578cc1dfd8 0000000000010900 ffff8857911fc300 ffff882f65f3e180 
+<4>[64040355.262429]  0000000000010900 0000000000010908 0000000000010900 ffff88578cc1dcb4 
+<4>[64040355.262440]  ffff88307f257000 00000002a005bbe1 ffff88578cc1dc48 0000003162c03440 
+<4>[64040355.262451] Call Trace: 
+<4>[64040355.262534]  [<ffffffffa052818d>] xlog_state_get_iclog_space+0xed/0x2c0 [xfs] 
+<4>[64040355.262654]  [<ffffffffa052899d>] xlog_write+0x16d/0x520 [xfs] 
+<4>[64040355.262735]  [<ffffffffa0529a0d>] xlog_cil_push+0x22d/0x390 [xfs] 
+<4>[64040355.262815]  [<ffffffffa0529fb9>] xlog_cil_force_lsn+0xf9/0x110 [xfs] 
+<4>[64040355.262895]  [<ffffffffa0527c88>] _xfs_log_force+0x68/0x210 [xfs] 
+<4>[64040355.262971]  [<ffffffffa052806b>] xfs_log_force+0xb/0x40 [xfs] 
+<4>[64040355.263054]  [<ffffffffa05361fa>] xfsaild_push+0x39a/0x3a0 [xfs] 
+<4>[64040355.263147]  [<ffffffffa0536254>] xfsaild+0x54/0xa0 [xfs] 
+<4>[64040355.263223]  [<ffffffff81084496>] kthread+0x96/0xa0 
+<4>[64040355.263241]  [<ffffffff81470564>] kernel_thread_helper+0x4/0x10 
+<0>[64040355.263250] Kernel panic - not syncing: hung_task: blocked tasks 
+<4>[64040355.263255] Pid: 553, comm: khungtaskd Not tainted 3.0.101-63-default #1 
+<4>[64040355.263258] Call Trace: 
+<4>[64040355.263269]  [<ffffffff81004b95>] dump_trace+0x75/0x300 
+<4>[64040355.263281]  [<ffffffff814643b3>] dump_stack+0x69/0x6f 
+<4>[64040355.263288]  [<ffffffff8146444c>] panic+0x93/0x201 
+<4>[64040355.263302]  [<ffffffff810c8631>] check_hung_uninterruptible_tasks+0x1e1/0x1f0 
+<4>[64040355.263312]  [<ffffffff810c8687>] watchdog+0x47/0x50 
+<4>[64040355.263318]  [<ffffffff81084496>] kthread+0x96/0xa0 
+<4>[64040355.263326]  [<ffffffff81470564>] kernel_thread_helper+0x4/0x10 
+
+kernel version : 3.0.101-63-default 
+
+xfs disks:
+/dev/sdb                       xfs    2.5T  1.8T  753G  71% /srv/BigData/mppdb/data1 
+/dev/sdc                       xfs    2.5T  1.7T  804G  68% /srv/BigData/mppdb/data2 
+/dev/sdd                       xfs    2.5T  1.7T  796G  69% /srv/BigData/mppdb/data3 
+/dev/sde                       xfs    2.5T  1.7T  801G  69% /srv/BigData/mppdb/data4 
+/dev/sdf                       xfs    2.5T  1.7T  788G  69% /srv/BigData/mppdb/data5 
+
+
+
+1）hung 3600s的flush-8:32进程的backtrace中的xfs_bmap实现xfs文件系统中文件offset地址到文件系统块地址的映射管理
+
+usr/src/linux-3.0.101-108.87/fs/xfs/xfs_bmap.c
+
+5038 int
+5039 xfs_bmapi(
+5040     xfs_trans_t *tp,        /* transaction pointer */
+5041     xfs_inode_t *ip,        /* incore inode */
+5042     xfs_fileoff_t   bno,        /* starting file offs. mapped */
+5043     xfs_filblks_t   len,        /* length to map in file */
+5044     int     flags,      /* XFS_BMAPI_... */
+5045     xfs_fsblock_t   *firstblock,    /* first allocated block
+5046                        controls a.g. for allocs */
+5047     xfs_extlen_t    total,      /* total blocks needed */
+5048     xfs_bmbt_irec_t *mval,      /* output: map values */
+5049     int     *nmap,      /* i/o: mval size/count */
+5050     xfs_bmap_free_t *flist)     /* i/o: list extents to free */
+5051 {
+5052     struct xfs_bmw_wkr  bw;
+5053     DECLARE_COMPLETION_ONSTACK(done);
+5054
+5055     if (!(flags & XFS_BMAPI_STACK_SWITCH)) {
+5056         return __xfs_bmapi(tp, ip, bno, len, flags, firstblock,
+5057                    total, mval, nmap, flist);
+5058     }
+5059     /* initialize the worker argument list structure */
+5060     bw.tp = tp;
+5061     bw.ip = ip;
+5062     bw.bno = bno;
+5063     bw.len = len;
+5064     bw.flags = flags;
+5065     bw.firstblock = firstblock;
+5066     bw.total = total;
+5067     bw.mval = mval;
+5068     bw.nmap = nmap;
+5069     bw.flist = flist;
+5070     bw.done = &done;
+5071     INIT_WORK_ONSTACK(&bw.work, xfs_bmapi_alloc_worker);
+5072     queue_work(xfs_alloc_wq, &bw.work);
+5073     wait_for_completion(&done);    <<<<<< flush-8:32进程等待在这一句上超过了3600秒
+5074     return bw.result;
+5075 }
+
+5033行 这一句用来唤醒flush-8:32进程，但是一直没有执行到，
+可能的原因是前面那一句分配文件系统数据块一直未完成，
+或者这个work所在的CPU等待执行的任务太多，
+或者前面的某一个work中有bug，一直占用此CPU执行work的进程。
+nmon中可以看到单个CPU利用率达到100% ？
+
+5019 static void
+5020 xfs_bmapi_alloc_worker(
+5021 struct work_struct      *work)
+5022 {
+5023     struct xfs_bmw_wkr  *bw = container_of(work,
+5024                            struct xfs_bmw_wkr, work);
+5025     unsigned long       pflags;
+5026
+5027     /* we are in a transaction context here */
+5028     current_set_flags_nested(&pflags, PF_FSTRANS);
+5029
+5030     bw->result = __xfs_bmapi(bw->tp, bw->ip, bw->bno, bw->len,
+5031                        bw->flags, bw->firstblock, bw->total,
+5032                        bw->mval, bw->nmap, bw->flist);
+5033     complete(bw->done);        <<<<<<<<<<<<<<<<<<<<<<<这一句用来唤醒flush-8:32进程，
+5034
+5035     current_restore_flags_nested(&pflags, PF_FSTRANS);
+5036 }
+
+2）Documentation/workqueue.txt里面
+这一句，表示同一个CPU上的bound workqueue上新的work，只要前面的work进入sleep状态即可启动新的work，不需要等待前面的work完全结束，最大限度利用CPU。
+As long as there are one or more runnable workers on the
+CPU, the gcwq doesn't start execution of a new work, but, when the
+last running worker goes to sleep, it immediately schedules a new
+worker so that the CPU doesn't sit idle while there are pending work
+items.  This allows using a minimal number of workers without losing
+execution bandwidth.
+
+下面这一句表示所有unbound workqueue 会在不同的CPU上最大化并发执行所有work
+For an unbound wq, the above concurrency management doesn't apply and
+the gcwq for the pseudo unbound CPU tries to start executing all work
+items as soon as possible.  The responsibility of regulating
+concurrency level is on the users.  There is also a flag to mark a
+bound wq to ignore the concurrency management.  Please refer to the
+API section for details.
+
+3）根据flags信息，xfs_alloc_wq是一个CPU bound workqueue
+crash> p/x xfs_alloc_wq
+$1 = 0xffff88578d8b05c0
+crash> struct workqueue_struct 0xffff88578d8b05c0
+struct workqueue_struct {
+  flags = 136,
+  
+136=128+8也就是对应WQ_RESCUER|WQ_MEM_RECLAIM 标志位为1，其它位为0.
+
+246 /*
+247  * Workqueue flags and constants.  For details, please refer to
+248  * Documentation/workqueue.txt.
+249  */
+250 enum {
+251     WQ_NON_REENTRANT    = 1 << 0, /* guarantee non-reentrance */
+252     WQ_UNBOUND      = 1 << 1, /* not bound to any cpu */
+253     WQ_FREEZABLE        = 1 << 2, /* freeze during suspend */
+254     WQ_MEM_RECLAIM      = 1 << 3, /* may be used for memory reclaim */
+255     WQ_HIGHPRI      = 1 << 4, /* high priority */
+256     WQ_CPU_INTENSIVE    = 1 << 5, /* cpu instensive workqueue */
+257
+258     WQ_DRAINING     = 1 << 6, /* internal: workqueue is draining */
+259     WQ_RESCUER      = 1 << 7, /* internal: workqueue has rescuer */
+260
+261     WQ_MAX_ACTIVE       = 512,    /* I like 512, better ideas? */
+262     WQ_MAX_UNBOUND_PER_CPU  = 4,      /* 4 * #cpus for unbound wq */
+263     WQ_DFL_ACTIVE       = WQ_MAX_ACTIVE / 2,
+264 };
+
+这是创建这个wq的源代码：
+1796     /*
+1797      * The allocation workqueue can be used in memory reclaim situations
+1798      * (writepage path), and parallelism is only limited by the number of
+1799      * AGs in all the filesystems mounted. Hence use the default large
+1800      * max_active value for this workqueue.
+1801      */
+1802     xfs_alloc_wq = alloc_workqueue("xfsalloc", WQ_MEM_RECLAIM, 0);
+
+
