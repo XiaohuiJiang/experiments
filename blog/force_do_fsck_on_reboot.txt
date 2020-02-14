@@ -1,0 +1,85 @@
+1) /etc/fstab 中对应的行最后一列数字（fs_passno）要设置成 1 or 2
+	/dev/vg1/lv1 /mnt/lv1 ext3 sb=8193,acl,user_xattr 0 2
+2) tune2fs -c 19 -C 20 /dev/vg1/lv1
+
+3）tune2fs -l /dev/vg1/lv1 可以看到 Mount count 大于 Maximun mount count
+Filesystem created:       Sun Jul 14 23:16:36 2019
+Last mount time:          Tue Feb 11 22:24:12 2020
+Last write time:          Tue Feb 11 22:36:31 2020
+Mount count:              20
+Maximum mount count:      19
+Last checked:             Tue Feb 11 22:30:11 2020
+Check interval:           0 (<none>)
+Lifetime writes:          2352 MB
+
+4）reboot
+5）重启之后 tune2fs -l /dev/vg1/lv1 可以看到 Mount count 被清零， Last checked 时间更新了
+Filesystem created:       Sun Jul 14 23:16:36 2019
+Last mount time:          Tue Feb 11 22:24:12 2020
+Last write time:          Tue Feb 11 22:37:26 2020
+Mount count:              0
+Maximum mount count:      19
+Last checked:             Tue Feb 11 22:37:26 2020     <<<<< fsck time changed
+Check interval:           0 (<none>)
+Lifetime writes:          2352 MB
+
+
+如果是reiserfs:
+1) /etc/fstab 中对应的行最后一列数字（fs_passno）要设置成 1 or 2
+/dev/vg1/lv1 /mnt/lv1 reiserfs rw,relatime 0 2
+ 
+2) /sbin/reiserfstune /dev/vg1/lv1 显示当前mount count
+如果是已经mount之后的设备用这个cmd：debugreiserfs /dev/vg1/lv1
+3) /sbin/reiserfstune -M 33 -m 30 /dev/vg1/lv1  修改 并看到看到 Mount count 大于 Maximun mount count
+Mount count: 33
+Maximum mount count: 30
+Last fsck run: Tue Feb 11 11:54:26 2020
+Check interval in days: 180
+
+4) reboot后, /sbin/reiserfstune /dev/vg1/lv1显示
+Mount count: 2
+Maximum mount count: 30
+Last fsck run: Tue Feb 11 12:07:00 2020   <<< fsck time
+Check interval in days: 180
+
+
+参考： man tune2fs
+TUNE2FS(8)                                                        System Manager's Manual                                                        TUNE2FS(8)
+
+
+
+NAME
+       tune2fs - adjust tunable filesystem parameters on ext2/ext3/ext4 filesystems
+
+SYNOPSIS
+       tune2fs  [  -l  ]  [ -c max-mount-counts ] [ -e errors-behavior ] [ -f ] [ -i interval-between-checks ] [ -j ] [ -J journal-options ] [ -m reserved-
+       blocks-percentage ] [ -o [^]mount-options[,...]  ] [ -r reserved-blocks-count ] [ -s sparse-super-flag ] [ -u user ] [ -g group ] [ -C mount-count ]
+       [ -E extended-options ] [ -L volume-name ] [ -M last-mounted-directory ] [ -O [^]feature[,...]  ] [ -Q quota-options ] [ -T time-last-checked ] [ -U
+       UUID ] device
+
+DESCRIPTION
+       tune2fs allows the system administrator to adjust various tunable filesystem parameters on Linux ext2, ext3, or ext4 filesystems.  The current  val-
+       ues of these options can be displayed by using the -l option to tune2fs(8) program, or by using the dumpe2fs(8) program.
+
+       The  device  specifier  can  either  be  a  filename  (i.e.,  /dev/sda1),  or a LABEL or UUID specifier: "LABEL=volume-name" or "UUID=uuid".  (i.e.,
+       LABEL=home or UUID=e40486c6-84d5-4f2f-b99c-032281799c9d).
+
+OPTIONS
+       -c max-mount-counts
+              Adjust the number of mounts after which the filesystem will be checked by e2fsck(8).  If max-mount-counts is 0 or -1, the number of times the
+              filesystem is mounted will be disregarded by e2fsck(8) and the kernel.
+
+              Staggering  the  mount-counts at which filesystems are forcibly checked will avoid all filesystems being checked at one time when using jour-
+              naled filesystems.
+
+              You should strongly consider the consequences of disabling mount-count-dependent checking entirely.  Bad disk  drives,  cables,  memory,  and
+              kernel bugs could all corrupt a filesystem without marking the filesystem dirty or in error.  If you are using journaling on your filesystem,
+              your filesystem will never be marked dirty, so it will not normally be checked.  A filesystem error detected by the kernel will  still  force
+              an fsck on the next reboot, but it may already be too late to prevent data loss at that point.
+
+              See also the -i option for time-dependent checking.
+
+       -C mount-count
+              Set the number of times the filesystem has been mounted.  If set to a greater value than the max-mount-counts parameter set by the -c option,
+              e2fsck(8) will check the filesystem at the next reboot.
+
