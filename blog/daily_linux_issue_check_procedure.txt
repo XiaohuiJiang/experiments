@@ -44,6 +44,11 @@ swap分区(6757MB used)主要被这几个进程使用：
 38697/status:VmSwap:     2062276 kB------>mysqld      2062MB
 46132/status:VmSwap:     1037228 kB------>mysqld      1037MB
 56692/status:VmSwap:      370964 kB------>java         370MB
+#### swap 使用情况分析
+swap used 增加是由于匿名页面回收导致的。
+匿名页面：包括进程的heap，stack，全局数据以及mmap private匿名页面，可以从top里面看到每个进程使用的swap
+共享内存：tempfs里面的内容回收时也会占用swap，df -Th可以看到每个tempfs used的大小， 当ipc和mmap shared比较少，tempfs used减去free中的shared中的部分，余下的会占用swap。
+
 
 2)
 free -m中的cache 28G主要由以下几个部分组成：
@@ -58,6 +63,17 @@ grep RssFile /proc/*/status | sort -k 2 -nr | head 用这个命令找到进程�
 31037/status:RssFile:      15880 kB
 38697/status:RssFile:       8880 kB
 46132/status:RssFile:       9836 kB
+#### cache中的内存包括
+filebased：进程的file based（可执行文件，库文件）和 kernel分配的pagecache
+shmem：tempfs 驻留内存的部分，进程中mmap shared页面（grep RssShmem /proc/*/status），ipc（ipcs查看）
+SReclaimable: kernel中slab占用的内存，用于ino，dentry等（slabtop 查看）
+#### tempfs中的used（df -Th查看）包括
+swap used中一部分， free命令的shared中一部分
+#### swapoff的条件满足一下之一
+1）free大于swap used
+2）free + active file + inactive file 足够大
+3）free 命令中 free + cached - shared -SReclaimable 足够大 
+细节参考 http://linuxperf.com/?p=142 /proc/meminfo之谜
 
 3)系统目前的mem压力不高，cpu压力也不搞，还有大量的inactive页面没有回收，目前状态存在内存泄漏的可能性比较小。
 如果有怀疑可以对比大量nmon历史数据，观察mysql占用的内存是否持续增加。
@@ -68,10 +84,9 @@ swap达到6.7G，我认为是历史上曾经有大的内存需求，导致一些
 这种情况是系统长期运行492天以后积累的结果。
 
 5)更多说明
-Linux的内存分为2种，cache中的内存是file based，回收的时候可以直接写到磁盘上。 不在cache中的内存叫做匿名内存，回收的时候把这部分写到swap分区。
+Linux的内存分为2种，file based，回收的时候可以直接写到磁盘上。 匿名内存，回收的时候把这部分写到swap分区。
 在日常有大的内存申请的时候，如果free的部分不足，系统会分别回收部分cache空间和swapout一些匿名内存。即使swappiness设为5，每次也会使用部分swap空间。如果swap中的内容不再被应用程序使用到，应用也没有free这部分内容，就会一直留在swap中。
 在这个例子中mysqld的swap部分就是长期不被用到也没有free的部分，至于判断是否是内存泄漏，要看mysqld中是否真的需要保留这么多长期不用的内存。从目前现象来看，也是类似内存泄漏的。如果mysqld中能够及时释放这些内存，也就不会有大量的swap空间被使用。
-
 
 
 
