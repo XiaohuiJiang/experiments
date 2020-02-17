@@ -1,0 +1,23 @@
+1) cp /boot/grub2/grub.cfg /root/grub.cfg.bak
+2) view /etc/default/grub
+
+# If you change this file, run 'grub2-mkconfig -o /boot/grub2/grub.cfg' afterwards to update
+# /boot/grub2/grub.cfg.
+
+# Uncomment to set your own custom distributor. If you leave it unset or empty, the default
+# policy is to determine the value from /etc/os-release
+GRUB_DISTRIBUTOR=
+GRUB_DEFAULT=saved
+GRUB_HIDDEN_TIMEOUT=0
+GRUB_HIDDEN_TIMEOUT_QUIET=true
+GRUB_TIMEOUT=8
+# GRUB_CMDLINE_LINUX_DEFAULT="resume=/dev/sda1 splash=silent quiet showopts"
+GRUB_CMDLINE_LINUX_DEFAULT="resume=/dev/sda1 splash=silent quiet showopts crashkernel=128M,high crashkernel=32M,low"
+GRUB_CMDLINE_LINUX=""
+
+
+
+3) grub2-mkconfig -o /boot/grub2/grub.cfg
+
+4) view /boot/grub2/grub.cfg (to check changes)
+       diff  /boot/grub2/grub.cfg /root/grub.cfg.bak

@@ -1,0 +1,33 @@
+linux-d4xo:~ # timedatectl -h
+timedatectl [OPTIONS...] COMMAND ...
+
+Query or change system time and date settings.
+
+  -h --help                Show this help message
+     --version             Show package version
+     --no-pager            Do not pipe output into a pager
+     --no-ask-password     Do not prompt for password
+  -H --host=[USER@]HOST    Operate on remote host
+  -M --machine=CONTAINER   Operate on local container
+     --adjust-system-clock Adjust system clock when changing local RTC mode
+
+Commands:
+  status                   Show current time settings
+  set-time TIME            Set system time
+  set-timezone ZONE        Set system time zone
+  list-timezones           Show known time zones
+  set-local-rtc BOOL       Control whether RTC is in local time
+  set-ntp BOOL             Enable or disable network time synchronization
+linux-d4xo:~ # timedatectl set-timezone Asia/Shanghai
+linux-d4xo:~ # date -R
+Tue, 10 Dec 2019 21:06:30 +0800
+linux-d4xo:~ # timedatectl
+      Local time: Tue 2019-12-10 21:06:33 CST
+  Universal time: Tue 2019-12-10 13:06:33 UTC
+        RTC time: Tue 2019-12-10 21:06:33
+       Time zone: Asia/Shanghai (CST, +0800)
+ Network time on: no
+NTP synchronized: no
+ RTC in local TZ: no
+linux-d4xo:~ # ll /etc/localtime
+lrwxrwxrwx 1 root root 35 Dec 10 21:06 /etc/localtime -> ../usr/share/zoneinfo/Asia/Shanghai

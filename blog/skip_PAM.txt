@@ -1,0 +1,8 @@
+## 修改PAM 跳过login的密码验证, /etc/pam.d/sshd 也可以做相同修改
+
+	linux-d4xo:~ # cat /etc/pam.d/login
+	#%PAM-1.0
+	account  requisite  pam_permit.so
+	auth     requisite  pam_permit.so
+	password    requisite  pam_permit.so
+	session  requisite      pam_permit.so

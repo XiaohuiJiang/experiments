@@ -1,0 +1,15 @@
+## start crash on vmcore
+sudo rpm -i kernel-default-debuginfo-3.0.101-63.1.x86_64.rpm
+crash System.map-3.0.101-63-default vmlinux-3.0.101-63-default vmcore
+
+
+## 加载mod符号表
+ffffffffa057f3a0  xfs                  879121  /usr/lib/debug/lib/modules/3.0.101-63-default/kernel/fs/xfs/xfs.ko.debug
+ffffffffa06bfee0  lpfc                 693873  (not loaded)  [CONFIG_KALLSYMS]
+crash> p/x xfs_alloc_wq
+$1 = 0xffff88578d8b05c0
+crash> mod -s xfs /usr/lib/debug/lib/modules/3.0.101-63-default/kernel/fs/xfs/xfs.ko.debug
+
+## Debug Online kernel
+crash /proc/kcore
+

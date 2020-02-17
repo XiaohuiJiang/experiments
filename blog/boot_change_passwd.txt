@@ -1,0 +1,67 @@
+## 总结各种进入单用户和Linux debug有关的命令行参数，部分信息从其他网页搜集未实验，仅供参考
+
+### 11sp4:
+
+cmd_root_no_mpath
+debug
+ignore_loglevel 
+删除 splash quiet
+shell=1 ##进入 initrd shell
+linuxrc=trace        activates debugging for the initrd process
+sysrq=7  ##设置console loglevel
+
+### 12sp3:
+rd.break ##进入initrd shell
+
+A method:
+	1. Grub > 'e'
+	2. init=/bin/sh (Remove rhgb and quiet tags if necessary) > ctrl+x
+	3. /usr/sbin/load_policy -i
+	4. mount -o remount,rw /
+	5. passwd root or passwd
+	6. mount -o remount,ro /
+
+B method:
+	1. Grub > 'e'
+	2. rd.break > ctrl+x
+	3. mount -o remount,rw /sysroot/
+	4. chroot /sysroot/
+	5. passwd root or passwd
+	6. touch /.autorelabel
+
+参考：Linux两种方式rd.break和init重置root管理员密码
+
+From <https://www.cnblogs.com/rzxiaojia/p/8360558.html> 
+
+### kernel命令行参数进入单用户模式
+命令行参数 'S' 使系统进入单用户模式，在这种状态下可以维护lvm信息，以上的initrd shell mode不能维护lvm卷上的文件。
+另外，lvm的信息是保存在磁盘上的，只要磁盘数据没有被覆盖，如果磁盘拔出再次插入，系统启动可以自动扫描到lvm信息。
+
+### Kernel 参数 设置启动到不同的runlevel
+emergency, rd.emergency, -b
+	启动到紧急维修模式。分别对应于 systemd.unit=emergency.target 或 rd.systemd.unit=emergency.target 的快捷方式。
+rescue, rd.rescue, single, s, S, 1
+	启动到救援模式。分别对应于 systemd.unit=rescue.target 或 rd.systemd.unit=rescue.target 的快捷方式。
+2, 3, 4, 5
+	启动到对应的 SysV 运行级。 分别对应于 systemd.unit=runlevel2.target, systemd.unit=runlevel3.target, systemd.unit=runlevel4.target, systemd.unit=runlevel5.target, 的快捷方式， 以简化输入。
+
+From <http://www.jinbuguo.com/systemd/systemd.html> 
+
+### 光盘启动以后这样重置root密码
+mount /dev/system/rootlv /mnt
+passwd root -R /mnt
+或者
+echo "root:asd123" | chpasswd -R /mnt
+
+-R也是指定被修改为/mnt/etc/passwd,echo 后面是user_name:password
+
+### 修改PAM 跳过login的密码验证, /etc/pam.d/sshd 也可以做相同修改
+
+	linux-d4xo:~ # cat /etc/pam.d/login
+	#%PAM-1.0
+	account  requisite  pam_permit.so
+	auth     requisite  pam_permit.so
+	password    requisite  pam_permit.so
+	session  requisite      pam_permit.so
+
+

@@ -1,0 +1,23 @@
+## Mem hotplug
+
+linux-s8lk:~ # echo $((896 * 1024 * 1024)) > /sys/devices/system/memory/probe
+linux-s8lk:~ # ls /sys/devices/system/memory/
+block_size_bytes  hard_offline_page  memory0  memory1  memory2  memory3  memory4  memory5  memory6  memory7  probe  soft_offline_page
+linux-s8lk:~ # cat /sys/devices/system/memory/memory7/state
+offline
+linux-s8lk:~ # echo online > /sys/devices/system/memory/memory7/state
+linux-s8lk:~ # lsmem
+If 'lsmem' is not a typo you can run the following command to lookup the package that contains the binary:
+    command-not-found lsmem
+bash: lsmem: command not found
+linux-s8lk:~ # free -m
+             total       used       free     shared    buffers     cached
+Mem:           858        632        225          0        137        313
+-/+ buffers/cache:        181        676
+Swap:         1096          0       1096
+linux-s8lk:~ # echo online > /sys/devices/system/memory/memory6/state
+linux-s8lk:~ # free -m
+             total       used       free     shared    buffers     cached
+Mem:           986        633        352          0        137        313
+-/+ buffers/cache:        182        803
+Swap:         1096          0       1096

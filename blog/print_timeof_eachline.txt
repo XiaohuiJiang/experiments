@@ -1,0 +1,4 @@
+## 利用perl脚本打印每行stdout信息的输出时间
+time ssh -v blob id 2>&1 | perl -pe 'use Time::HiRes qw( time ); $_ = sprintf("%.6f %s", time(), $_)'
+
+From <https://www.depesz.com/2010/12/13/a-tale-of-slow-ssh-connections/> 

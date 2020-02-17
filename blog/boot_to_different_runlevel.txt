@@ -1,0 +1,11 @@
+## boot to different runlevel
+
+emergency, rd.emergency, -b
+	启动到紧急维修模式。分别对应于 systemd.unit=emergency.target 或 rd.systemd.unit=emergency.target 的快捷方式。
+rescue, rd.rescue, single, s, S, 1
+	启动到救援模式。分别对应于 systemd.unit=rescue.target 或 rd.systemd.unit=rescue.target 的快捷方式。
+2, 3, 4, 5
+	启动到对应的 SysV 运行级。 分别对应于 systemd.unit=runlevel2.target, systemd.unit=runlevel3.target, systemd.unit=runlevel4.target, systemd.unit=runlevel5.target, 的快捷方式， 以简化输入。
+
+From <http://www.jinbuguo.com/systemd/systemd.html> 
+

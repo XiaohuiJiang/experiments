@@ -1,0 +1,17 @@
+## 修改单进程的各种limits的方法
+1) echo -n 'Max open files=10000:10000' > /proc/3622/limits
+
+From <https://blog.csdn.net/weixin_33910460/article/details/90562163> 
+
+2) prlimit
+
+## 修改用户session的limits的方法
+1) 修改/etc/security/limits.conf， 下次登录生效，重启后设置有效
+2) ulimit 命令， 对当前进程及其子进程有效，重启丢失设置
+
+## 修改系统limits和各种设置的方法
+1) 修改/etc/sysctl.conf, 然后sysctl -p生效，重启后依然有效
+2) 用sysctl -w命令或者直接echo命令修改 /proc/sys/目录下的文件内容
+
+## c代码调用函数修改
+getrlimit, setrlimit, prlimit - get/set resource limits

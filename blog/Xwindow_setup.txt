@@ -1,0 +1,32 @@
+## Xwindow setup
+### Suse 11sp4
+请参考下面方法配置:
+# /etc/gdm/custom.conf
+[security]
+DisallowTCP=false
+AllowRemoteRoot=true
+[xdmcp]
+Enable=true
+Port=177
+
+# /etc/sysconfig/windowmanager
+DEFAULT_WM="gnome"
+Or
+DEFAULT_WM=""
+
+
+# /etc/sysconfig/displaymanager
+DISPLAYMANAGER="gdm"
+DISPLAYMANAGER_REMOTE_ACCESS="yes"
+DISPLAYMANAGER_ROOT_LOGIN_REMOTE="yes"
+DISPLAYMANAGER_XSERVER_TCP_PORT_6000_OPEN="yes"
+
+重启xdm:
+rcxdm restart
+
+### Suse 12sp3
+由于gnome-shell segfault没有修复，不能连接远程Xmanager
+kernel: [91665.206432] gnome-shell[37990]: segfault at 14 ip 00007fb1ca3e56d7 sp 00007ffcdd59a6a0 error 4 in libmutter.so.0.0.0[7fb1ca3a8000+d7000]
+
+需要最新的mutter源代码
+https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=900002

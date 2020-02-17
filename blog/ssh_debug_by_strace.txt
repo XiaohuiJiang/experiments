@@ -1,0 +1,12 @@
+## strace跟踪sshd的子进程
+=# mkdir ssh.strace
+ 
+=# cd ssh.strace/
+ 
+=# netstat -ntlp | grep ":22 "
+tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN      21691/sshd
+tcp6       0      0 :::22                   :::*                    LISTEN      21691/sshd
+ 
+=# strace -ff -o strace.log -tt -T -p 21691
+
+From <https://www.depesz.com/2010/12/13/a-tale-of-slow-ssh-connections/> 
