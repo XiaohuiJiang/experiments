@@ -1,0 +1,90 @@
+#refer to https://www.cactifans.org/linux/1071.html
+
+linux-d4xo:~ # cat /sys/block/sdd/device/state
+running
+linux-d4xo:~ # echo offline > /sys/block/sdd/device/state
+linux-d4xo:~ # lsblk
+NAME      MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda         8:0    0   40G  0 disk
+├─sda1      8:1    0  1.1G  0 part [SWAP]
+└─sda2      8:2    0   39G  0 part /tmp
+sdb         8:16   0   20G  0 disk
+└─vg1-lv1 254:0    0   10G  0 lvm  /mnt/lv1
+sdc         8:32   0    2G  0 disk
+sdd         8:48   0    2G  0 disk
+sr0        11:0    1  3.6G  0 rom
+linux-d4xo:~ # cat /sys/block/sdd/device/state
+offline
+linux-d4xo:~ # blockdev --getsz /dev/sdd
+blockdev: cannot open /dev/sdd: No such device or address
+
+linux-d4xo:~ # lsblk
+NAME      MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda         8:0    0   40G  0 disk
+├─sda1      8:1    0  1.1G  0 part [SWAP]
+└─sda2      8:2    0   39G  0 part /tmp
+sdb         8:16   0   20G  0 disk
+└─vg1-lv1 254:0    0   10G  0 lvm  /mnt/lv1
+sdc         8:32   0    2G  0 disk
+sdd         8:48   0    2G  0 disk     #<<<<< sdd is in system but state is offline
+sr0        11:0    1  3.6G  0 rom
+linux-d4xo:~ # echo online > /sys/block/sdd/device/state
+-bash: echo: write error: Invalid argument
+linux-d4xo:~ # echo running > /sys/block/sdd/device/state
+linux-d4xo:~ # blockdev --getsz /dev/sdd
+4194304
+linux-d4xo:~ # echo offline > /sys/block/sdd/device/state
+linux-d4xo:~ # blockdev --getsz /dev/sdd
+blockdev: cannot open /dev/sdd: No such device or address
+linux-d4xo:~ # lsblk
+NAME      MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda         8:0    0   40G  0 disk
+├─sda1      8:1    0  1.1G  0 part [SWAP]
+└─sda2      8:2    0   39G  0 part /tmp
+sdb         8:16   0   20G  0 disk
+└─vg1-lv1 254:0    0   10G  0 lvm  /mnt/lv1
+sdc         8:32   0    2G  0 disk
+sdd         8:48   0    2G  0 disk
+sr0        11:0    1  3.6G  0 rom
+linux-d4xo:~ # echo 1 > /sys/block/sdd/device/delete    #<<<<<after delete sdd is not in system
+linux-d4xo:~ # lsblk
+NAME      MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda         8:0    0   40G  0 disk
+├─sda1      8:1    0  1.1G  0 part [SWAP]
+└─sda2      8:2    0   39G  0 part /tmp
+sdb         8:16   0   20G  0 disk
+└─vg1-lv1 254:0    0   10G  0 lvm  /mnt/lv1
+sdc         8:32   0    2G  0 disk
+sr0        11:0    1  3.6G  0 rom
+linux-d4xo:~ # lsscsi
+[1:0:0:0]    cd/dvd  NECVMWar VMware SATA CD01 1.00  /dev/sr0
+[30:0:0:0]   disk    VMware,  VMware Virtual S 1.0   /dev/sda
+[30:0:1:0]   disk    VMware,  VMware Virtual S 1.0   /dev/sdb
+[30:0:2:0]   disk    VMware,  VMware Virtual S 1.0   /dev/sdc
+linux-d4xo:~ # echo “- – – ” > /sys/class/scsi_host/host30/scan
+-bash: echo: write error: Invalid argument
+linux-d4xo:~ # echo “- - - ” > /sys/class/scsi_host/host30/scan
+-bash: echo: write error: Invalid argument
+linux-d4xo:~ # echo "- - -" >/sys/class/scsi_host/host30/scan   #<<<<scan make sdd back to system and state is running again
+linux-d4xo:~ # lsscsi
+[1:0:0:0]    cd/dvd  NECVMWar VMware SATA CD01 1.00  /dev/sr0
+[30:0:0:0]   disk    VMware,  VMware Virtual S 1.0   /dev/sda
+[30:0:1:0]   disk    VMware,  VMware Virtual S 1.0   /dev/sdb
+[30:0:2:0]   disk    VMware,  VMware Virtual S 1.0   /dev/sdc
+[30:0:3:0]   disk    VMware,  VMware Virtual S 1.0   /dev/sdd
+linux-d4xo:~ # lsblk
+NAME      MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda         8:0    0   40G  0 disk
+├─sda1      8:1    0  1.1G  0 part [SWAP]
+└─sda2      8:2    0   39G  0 part /tmp
+sdb         8:16   0   20G  0 disk
+└─vg1-lv1 254:0    0   10G  0 lvm  /mnt/lv1
+sdc         8:32   0    2G  0 disk
+sdd         8:48   0    2G  0 disk
+sr0        11:0    1  3.6G  0 rom
+linux-d4xo:~ # blockdev --getsz /dev/sdd
+4194304
+linux-d4xo:~ # cat /sys/block/sdd/device/state
+running
+linux-d4xo:~ #
+
