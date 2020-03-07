@@ -1,0 +1,48 @@
+1. 在目标机器上备份passwd和shadow文件
+cp /etc/passwd /etc/passwd-bak
+cp /etc/shadow /etc/shadow-bak
+
+2. 将用户的passwd和shadow传送到目标机器，注意源端和目的端机器上的UID和GID要保持一致。
+2.1 在源端机器上操作
+linux-ginb:/home # cat /etc/passwd | grep test_new_3
+test_new_3:x:1003:100::/home/test_new_3:/bin/bash
+linux-ginb:/home # cat /etc/shadow | grep test_new_3
+test_new_3:$2a$10$oxDIar6bL4czalgBdfUJqukPUaaGHjlyo3gv12zlyll25J4fiZLCy:18317:0:99999:7:::
+2.2 在目标机器上操作(注意使用单引号，避免特殊字符转义)：
+echo 'test_new_3:x:1003:100::/home/test_new_3:/bin/bash' >> /etc/passwd
+echo 'test_new_3:$2a$10$oxDIar6bL4czalgBdfUJqukPUaaGHjlyo3gv12zlyll25J4fiZLCy:18317:0:99999:7:::' >> /etc/shadow
+
+#### 注意：如果被传送的用户属于自定义的用户组，需要同时传送/etc/group的对应内容到目标机器上。
+
+3. 将用户的主目录/home/test_new_3/打包
+find /home/test_new_3/ -print -depth | cpio -ov > tree.cpio
+
+4. 将打包好的用户目录数据传到目标机器
+linux-ginb:/home # scp tree.cpio root@192.168.255.139:
+Password:
+tree.cpio                                                                                                                          100% 1024     1.0KB/s   00:00
+
+5. 到目标机器展开用户数据，可以看到文件和目录的权限没有变
+linux-d4xo:~ # ls /home -l
+total 0
+drwxr-xr-x 1 jiang users 530 Feb 25 02:23 jiang
+linux-d4xo:~ # cpio -idmv < tree.cpio
+/home/test_new_3/test_new_dir/346.txt
+/home/test_new_3/test_new_dir
+/home/test_new_3/.bash_history
+/home/test_new_3/1234.txt
+/home/test_new_3/1234111.txt
+/home/test_new_3/.lesshst
+/home/test_new_3
+2 blocks
+linux-d4xo:~ # ll /home/
+total 0
+drwxr-xr-x 1 jiang      users 530 Feb 25 02:23 jiang
+drwxr-xr-x 1 test_new_3 users 104 Feb 25 02:51 test_new_3
+linux-d4xo:~ # ll /home/test_new_3/
+total 16
+-rw------- 1 test_new_3 users 248 Feb 25 02:51 .bash_history
+-rw------- 1 test_new_3 users  35 Feb 25 02:51 .lesshst
+-rw-r--r-- 1 test_new_3 users   5 Feb 25 02:49 1234.txt
+-rw-r--r-- 1 test_new_3 users   9 Feb 25 02:49 1234111.txt
+drwxr-xr-x 1 test_new_3 users  14 Feb 25 02:50 test_new_dir
