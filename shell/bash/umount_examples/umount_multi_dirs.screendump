@@ -1,0 +1,44 @@
+jiang@linux-8lq6:~/test> sudo mount --bind data2_old/ data2
+jiang@linux-8lq6:~/test> sudo mount --bind data1_old/ data1
+jiang@linux-8lq6:~/test> mount | grep data | awk '{print $3}'| xargs -t -I {} sudo umount {}
+sudo umount /home/jiang/test/data2
+sudo umount /home/jiang/test/data1
+jiang@linux-8lq6:~/test> sudo mount --bind data2_old/ data2
+jiang@linux-8lq6:~/test> sudo mount --bind data1_old/ data1
+jiang@linux-8lq6:~/test> mount
+/dev/sda2 on / type ext3 (rw,acl,user_xattr)
+proc on /proc type proc (rw)
+sysfs on /sys type sysfs (rw)
+debugfs on /sys/kernel/debug type debugfs (rw)
+udev on /dev type tmpfs (rw,mode=0755)
+tmpfs on /dev/shm type tmpfs (rw,mode=1777)
+devpts on /dev/pts type devpts (rw,mode=0620,gid=5)
+fusectl on /sys/fs/fuse/connections type fusectl (rw)
+vmware-vmblock on /var/run/vmblock-fuse type fuse.vmware-vmblock (rw,nosuid,nodev,default_permissions,allow_other)
+/home/jiang/test/data2_old on /home/jiang/test/data2 type none (rw,bind)
+/home/jiang/test/data1_old on /home/jiang/test/data1 type none (rw,bind)
+jiang@linux-8lq6:~/test> umount /home/jiang/test/data*
+umount: /home/jiang/test/data1 is not in the fstab (and you are not root)
+jiang@linux-8lq6:~/test> mount | grep data
+/home/jiang/test/data2_old on /home/jiang/test/data2 type none (rw,bind)
+/home/jiang/test/data1_old on /home/jiang/test/data1 type none (rw,bind)
+jiang@linux-8lq6:~/test> sudo umount /home/jiang/test/data*
+umount: /home/jiang/test/data1: not mounted
+umount: /home/jiang/test/data2: not mounted
+jiang@linux-8lq6:~/test> mount | grep data
+jiang@linux-8lq6:~/test> man xargs
+jiang@linux-8lq6:~/test> sudo mount --bind data2_old/ data2
+root's password:
+Sorry, try again.
+root's password:
+jiang@linux-8lq6:~/test> sudo mount --bind data1_old/ data1
+jiang@linux-8lq6:~/test> mount | grep dat
+/home/jiang/test/data2_old on /home/jiang/test/data2 type none (rw,bind)
+/home/jiang/test/data1_old on /home/jiang/test/data1 type none (rw,bind)
+jiang@linux-8lq6:~/test> mount | grep data | awk '{print $3}'| xargs -t sudo umount
+sudo umount /home/jiang/test/data2 /home/jiang/test/data1
+jiang@linux-8lq6:~/test> mount | grep data
+jiang@linux-8lq6:~/test> man mount
+Man: find all matching manual pages
+ * mount (8)
+   mount (2)

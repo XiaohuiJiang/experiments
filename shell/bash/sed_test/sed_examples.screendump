@@ -1,0 +1,54 @@
+jiang_xiaohui@CHN-XJiang:/mnt/d/github_xiaohui/experiments/shell/bash/sed_test> echo "qwert 12345" > test_file.txt
+jiang_xiaohui@CHN-XJiang:/mnt/d/github_xiaohui/experiments/shell/bash/sed_test> cat test_file.txt
+qwert 12345
+jiang_xiaohui@CHN-XJiang:/mnt/d/github_xiaohui/experiments/shell/bash/sed_test> sed -e "s/12345/6789/" test_file.txt
+qwert 6789
+jiang_xiaohui@CHN-XJiang:/mnt/d/github_xiaohui/experiments/shell/bash/sed_test> a=erty
+jiang_xiaohui@CHN-XJiang:/mnt/d/github_xiaohui/experiments/shell/bash/sed_test> echo $a
+erty
+jiang_xiaohui@CHN-XJiang:/mnt/d/github_xiaohui/experiments/shell/bash/sed_test> sed -e "s/12345/$a/" test_file.txt
+qwert erty
+jiang_xiaohui@CHN-XJiang:/mnt/d/github_xiaohui/experiments/shell/bash/sed_test> b=12345
+jiang_xiaohui@CHN-XJiang:/mnt/d/github_xiaohui/experiments/shell/bash/sed_test> sed -e "s/$b/$a/" test_file.txt
+qwert erty
+jiang_xiaohui@CHN-XJiang:/mnt/d/github_xiaohui/experiments/shell/bash/sed_test> sed -e "s/qwert/$a/" test_file.txt
+erty 12345
+
+
+jiang_xiaohui@CHN-XJiang:/mnt/d/github_xiaohui/experiments/shell/bash/sed_test> echo $IPADDRESS
+192.168.255.100
+jiang_xiaohui@CHN-XJiang:/mnt/d/github_xiaohui/experiments/shell/bash/sed_test> cat ifcfg-keys | grep IP
+IPADDR=
+REMOTE_IPADDR=
+RUN_POLL_TCPIP=
+WIRELESS_CIPHER_PAIRWISE=
+WIRELESS_CIPHER_GROUP=
+jiang_xiaohui@CHN-XJiang:/mnt/d/github_xiaohui/experiments/shell/bash/sed_test> cat ifcfg-keys | grep IP > ifcfg-IP
+jiang_xiaohui@CHN-XJiang:/mnt/d/github_xiaohui/experiments/shell/bash/sed_test> sed -e "s/IPADDR=/IPADDR=$IPADDRESS/" ifcfg-IP
+IPADDR=192.168.255.100
+REMOTE_IPADDR=192.168.255.100
+RUN_POLL_TCPIP=
+WIRELESS_CIPHER_PAIRWISE=
+WIRELESS_CIPHER_GROUP=
+jiang_xiaohui@CHN-XJiang:/mnt/d/github_xiaohui/experiments/shell/bash/sed_test> sed -e "s/^IPADDR=/IPADDR=$IPADDRESS/" ifcfg-IP
+IPADDR=192.168.255.100
+REMOTE_IPADDR=
+RUN_POLL_TCPIP=
+WIRELESS_CIPHER_PAIRWISE=
+WIRELESS_CIPHER_GROUP=
+jiang_xiaohui@CHN-XJiang:/mnt/d/github_xiaohui/experiments/shell/bash/sed_test> sed -i -e "s/^IPADDR=/IPADDR=$IPADDRESS/" ifcfg-IP
+jiang_xiaohui@CHN-XJiang:/mnt/d/github_xiaohui/experiments/shell/bash/sed_test> cat ifcfg-IP
+IPADDR=192.168.255.100
+REMOTE_IPADDR=
+RUN_POLL_TCPIP=
+WIRELESS_CIPHER_PAIRWISE=
+WIRELESS_CIPHER_GROUP=
+jiang_xiaohui@CHN-XJiang:/mnt/d/github_xiaohui/experiments/shell/bash/sed_test> IPADDRESS="84.4.4.32"
+jiang_xiaohui@CHN-XJiang:/mnt/d/github_xiaohui/experiments/shell/bash/sed_test> echo $IPADDRESS
+84.4.4.32
+jiang_xiaohui@CHN-XJiang:/mnt/d/github_xiaohui/experiments/shell/bash/sed_test> sed  -e "s/^IPADDR=.*$/IPADDR=$IPADDRESS/" ifcfg-IP
+IPADDR=84.4.4.32
+REMOTE_IPADDR=
+RUN_POLL_TCPIP=
+WIRELESS_CIPHER_PAIRWISE=
+WIRELESS_CIPHER_GROUP=
