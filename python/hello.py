@@ -1,4 +1,4 @@
-#!/usr/bin/env python -Qnew
+#!/usr/bin/env python3
 # -*- coding: utf-8; mode: python; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- vim:fenc=utf-8:ft=python:et:sw=4:ts=4:sts=4
 
 import getopt
@@ -10,7 +10,7 @@ def usage():
 NAME
     description
 Usage
-    python program.py [options]
+    python3 program.py [options]
 ''')
 
 
@@ -52,8 +52,6 @@ if __name__ == '__main__':
     #example to read stdout from another process
     ppp = os.popen('ls -l')
     print (ppp.read())
-    help('file.read')
-    help('ppp.read')
     print (dir(ppp))
     ppp.close()
 
