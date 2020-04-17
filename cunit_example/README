@@ -1,0 +1,8 @@
+To make this work, you need create a symbol link CUnit to real path of CUnit directory.
+
+Refer to this webpage to install CUnit:
+https://blog.csdn.net/benkaoya/article/details/95870801
+
+Here is a Chinese version CUnit manual:
+https://blog.csdn.net/benkaoya/article/details/95887879
+
