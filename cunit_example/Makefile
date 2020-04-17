@@ -1,5 +1,5 @@
-INC=-I./CUnit/include/
-LIB=-L./CUnit/lib/
+#INC=-I./CUnit/include/
+#LIB=-L./CUnit/lib/
 
 all: CUnitExample.c
 	gcc -o test $(INC) $(LIB) -lcunit $^
@@ -7,5 +7,5 @@ all: CUnitExample.c
 clean:
 	-rm -rf *.o test *.txt
 
-run:
-	LD_LIBRARY_PATH=$LD_LIBRARY_PATH:./CUnit/lib/ ./test
+#run:
+#	LD_LIBRARY_PATH=$LD_LIBRARY_PATH:./CUnit/lib/ ./test

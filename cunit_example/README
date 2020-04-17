@@ -1,5 +1,11 @@
 To make this work, you need create a symbol link CUnit to real path of CUnit directory.
 
+or install the header and lib to system search dir.
+
+sudo cp -P <CUnit instaled_path>/lib/libcunit.*  /usr/local/lib/
+sudo ln -sf <CUnit instaled_path>/include/CUnit/ /usr/local/include/CUnit
+sudo ldconfig
+
 Refer to this webpage to install CUnit:
 https://blog.csdn.net/benkaoya/article/details/95870801
 
